@@ -1,6 +1,6 @@
 // ============================================
 // PopUp1-AR Configuration File
-// Separate content from code for easy editing
+// Cybernetica Co-incidence Generator Narrative
 // ============================================
 
 // ============================================
@@ -57,17 +57,8 @@ const APP_CONFIG = {
 // AUDIO TREE / NARRATIVE STRUCTURE
 // ============================================
 //
-// Each node in the tree represents a screen/state with:
-//   - id: Unique identifier for this node
-//   - title: Display title
-//   - subtitle: Optional subtitle text
-//   - audio: Audio file URL or tone configuration
-//   - text: Optional on-screen text content
-//   - options: Array of next node IDs (for branching)
-//   - next: Default next node ID (if no options specified)
-//   - color: Theme color for this node
-//   - background: Optional background color/image
-//   - feedbackUrl: Optional URL for feedback form (shown at end node)
+// Cybernetica Co-incidence Generator - Sequential Journey
+// Each node represents a moment in the narrative experience
 //
 // Audio can be:
 //   - String: URL to audio file (e.g., 'audio/chapter1.mp3')
@@ -75,109 +66,126 @@ const APP_CONFIG = {
 //   - Object: { type: 'silence', duration: 2 }
 //   - Object: { type: 'sequence', notes: [{freq: 440, dur: 0.5}, ...] }
 //
-// If no audio specified, uses silence
-//
 
 const AUDIO_TREE = {
     // Starting node
     start: {
         id: 'start',
-        title: 'Co-incidence Generator ',
-        subtitle: 'Click "Next" to begin the journey',
-        text: 'Welcome to the experience. Press Next to start.',
+        title: 'Co-incidence Generator',
+        subtitle: 'A Cybernetica Experience',
+        text: 'Welcome to the Co-incidence Generator. Press Next to begin your journey through the forest of possibilities.',
         audio: { type: 'silence', duration: 0.1 },
-        next: 'chapter1',
+        next: 'falling',
         color: '#007aff'
     },
     
-    // Chapter 1
-    chapter1: {
-        id: 'chapter1',
-        title: 'Chapter 1: The Beginning',
-        subtitle: 'A new adventure unfolds',
-        text: 'In the beginning, there was only silence. Then, a single note emerged from the void.',
+    // 1 - Falling
+    falling: {
+        id: 'falling',
+        title: '1: Falling',
+        subtitle: 'The Descent Begins',
+        text: 'You step into the forest. The ground gives way beneath you, and you begin to fall - not with fear, but with curiosity. The trees whisper as you descend into the unknown.',
         audio: 'audio/1-Falling.mp3',
-        next: 'chapter2',
+        next: 'offPath',
         color: '#007aff'
     },
     
-    // Chapter 2
-    chapter2: {
-        id: 'chapter2',
-        title: 'Chapter 2: The Journey',
-        subtitle: 'The path forward',
-        text: 'The note grew, splitting into harmony. Two voices now sang together.',
-        audio: { type: 'sequence', notes: [
-            { freq: 220, dur: 0.8, wave: 'sine' },
-            { freq: 277.18, dur: 0.8, wave: 'sine' },
-            { freq: 330, dur: 1.4, wave: 'sine' }
-        ]},
-        next: 'chapter3',
+    // 2 - Off Path Respect
+    offPath: {
+        id: 'offPath',
+        title: '2: Off Path - Respect',
+        subtitle: 'Honoring the Unseen',
+        text: 'The forest does not judge. It simply is. You find yourself off the beaten path, learning to respect the intelligence of nature itself - the mycelium networks, the communicating trees, the watching birds.',
+        audio: 'audio/2-offPath-Respect.mp3',
+        next: 'birdWatching',
         color: '#34c759'
     },
     
-    // Chapter 3
-    chapter3: {
-        id: 'chapter3',
-        title: 'Chapter 3: The Discovery',
-        subtitle: 'Something new appears',
-        text: 'The harmony resolved into a single, pure tone. But this was different. This was a choice.',
-        audio: { type: 'tone', frequency: 330, duration: 4, wave: 'sine' },
-        options: ['choice_a', 'choice_b'],
+    // 3 - Bird Watching
+    birdWatching: {
+        id: 'birdWatching',
+        title: '3: Bird Watching',
+        subtitle: 'The Observers',
+        text: 'Above you, the birds move in patterns. They are not just watching you - they are communicating about you. A murmuration of knowledge passes through the flock. You are being assessed.',
+        audio: 'audio/3-BirdWatching.mp3',
+        next: 'othersWatching',
         color: '#ff9500'
     },
     
-    // Choice A - The Light Path
-    choice_a: {
-        id: 'choice_a',
-        title: 'The Light Path',
-        subtitle: 'You chose brightness',
-        text: 'The light surrounded you, warm and welcoming. The tone ascended, lifting your spirit.',
-        audio: { type: 'sequence', notes: [
-            { freq: 330, dur: 0.5, wave: 'sine' },
-            { freq: 440, dur: 0.5, wave: 'sine' },
-            { freq: 550, dur: 0.5, wave: 'sine' },
-            { freq: 660, dur: 2, wave: 'sine' }
-        ]},
-        next: 'ending',
+    // 4 - Others Watching Tree Translate
+    othersWatching: {
+        id: 'othersWatching',
+        title: '4: Others Watching Tree Translate',
+        subtitle: 'The Language of Trees',
+        text: 'The trees themselves are translating. Not just the wind through leaves, but something deeper - a conversation in frequencies you can almost understand. The others are watching. The others are learning.',
+        audio: 'audio/4-OthersWatchingTreeTranslate.mp3',
+        next: 'slowMoWalk',
         color: '#ffcc00'
     },
     
-    // Choice B - The Shadow Path
-    choice_b: {
-        id: 'choice_b',
-        title: 'The Shadow Path',
-        subtitle: 'You embraced the dark',
-        text: 'The shadows enveloped you, cool and mysterious. The tone descended, grounding your soul.',
-        audio: { type: 'sequence', notes: [
-            { freq: 330, dur: 0.5, wave: 'sine' },
-            { freq: 220, dur: 0.5, wave: 'sine' },
-            { freq: 165, dur: 0.5, wave: 'sine' },
-            { freq: 110, dur: 2, wave: 'sine' }
-        ]},
-        next: 'ending',
+    // 5 - Slow Motion Walk
+    slowMoWalk: {
+        id: 'slowMoWalk',
+        title: '5: Slow Motion Walk',
+        subtitle: 'Time Expands',
+        text: 'Every step takes minutes. Every breath, an eternity. You walk in slow motion, feeling the texture of time itself stretching and bending around you. The forest breathes with you.',
+        audio: 'audio/5-SlowMoWalk.mp3',
+        next: 'pathwayAB',
         color: '#333366'
+    },
+    
+    // 7 - Pathway AB Test
+    pathwayAB: {
+        id: 'pathwayAB',
+        title: '7: Pathway A/B Test',
+        subtitle: 'The Choice Point',
+        text: 'Two paths emerge. Not left or right, but A and B. The forest tests you. Both paths are valid. Both paths are watched. The test is not which you choose, but how you choose.',
+        audio: 'audio/7-pathwayABtest.mp3',
+        next: 'offTrack',
+        color: '#8844aa'
+    },
+    
+    // 7 - Off Track: Get Lost, Bring Back Our Tech
+    offTrack: {
+        id: 'offTrack',
+        title: '7: Off Track - Get Lost, Bring Back Our Tech',
+        subtitle: 'The Detour',
+        text: 'You chose to leave the path entirely. The forest thickens. You are lost, but not alone. Something calls to you - not a voice, but a vibration. A piece of technology, left behind by others, waits to be returned.',
+        audio: 'audio/7-offTrack-getlost-bringbackourtech.mp3',
+        next: 'lickTheGrass',
+        color: '#cc3333'
+    },
+    
+    // Lick The Grass
+    lickTheGrass: {
+        id: 'lickTheGrass',
+        title: 'Lick The Grass',
+        subtitle: 'The Return to Senses',
+        text: 'On your hands and knees, you understand. The forest has been speaking through your skin, your breath, your bones. You lick the grass and taste the earth. The connection is complete.',
+        audio: 'audio/LickTheGrass.mp3',
+        next: 'ending',
+        color: '#00aa44'
     },
     
     // Ending
     ending: {
         id: 'ending',
         title: 'The End',
-        subtitle: 'For now...',
-        text: 'Your journey has reached its conclusion. But every ending is a new beginning. Press Next to start again.',
+        subtitle: 'Or the Beginning',
+        text: 'You stand, changed. The forest watches as you leave. But you carry it with you now - in your breath, your thoughts, your new understanding. The Co-incidence Generator has done its work.',
         audio: { type: 'sequence', notes: [
-            { freq: 220, dur: 0.3, wave: 'sine' },
-            { freq: 0, dur: 0.1 }, // silence
-            { freq: 277.18, dur: 0.3, wave: 'sine' },
-            { freq: 0, dur: 0.1 },
-            { freq: 330, dur: 0.3, wave: 'sine' },
-            { freq: 0, dur: 0.1 },
-            { freq: 440, dur: 1, wave: 'sine' }
+            { freq: 220, dur: 0.5, wave: 'sine' },
+            { freq: 0, dur: 0.2 },
+            { freq: 277.18, dur: 0.5, wave: 'sine' },
+            { freq: 0, dur: 0.2 },
+            { freq: 330, dur: 0.5, wave: 'sine' },
+            { freq: 0, dur: 0.2 },
+            { freq: 440, dur: 1.5, wave: 'sine' }
         ]},
         next: 'start',
         color: '#ffffff',
         background: '#000000',
-        // Feedback form link (placeholder - replace with real Google Form URL)
+        // Feedback form link (replace with real Google Form URL)
         feedbackUrl: 'https://example.com/feedback-placeholder'
     }
 };
@@ -192,10 +200,11 @@ const UI_TEXT = {
     nextButtonAR: 'Next Track',
     startARButton: 'Start AR',
     testModeButton: 'Test Mode',
-    backButton: 'Back to Audio',
+    backButton: 'Back',
     playButton: 'Play',
     pauseButton: 'Pause',
     feedbackButton: 'Give Feedback',
+    restartButton: 'Restart',
     
     // Mode labels
     audioModeLabel: 'Audio Mode',
