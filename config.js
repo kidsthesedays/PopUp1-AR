@@ -152,19 +152,30 @@ const AUDIO_TREE = {
         subtitle: 'The Detour',
         text: 'You chose to leave the path entirely. The forest thickens. You are lost, but not alone. Something calls to you - not a voice, but a vibration. A piece of technology, left behind by others, waits to be returned.',
         audio: 'audio/7-offTrack-getlost-bringbackourtech.mp3',
-        next: 'lickTheGrass',
+        next: 'mushroomMycelium',
         color: '#cc3333'
     },
     
-    // Lick The Grass
-    lickTheGrass: {
-        id: 'lickTheGrass',
-        title: 'Lick The Grass',
-        subtitle: 'The Return to Senses',
-        text: 'On your hands and knees, you understand. The forest has been speaking through your skin, your breath, your bones. You lick the grass and taste the earth. The connection is complete.',
-        audio: 'audio/LickTheGrass.mp3',
+    // 9 - Mushroom Mycelium Internet Tree Hugging
+    mushroomMycelium: {
+        id: 'mushroomMycelium',
+        title: '9: Mushroom Mycelium - Internet Tree Hugging',
+        subtitle: 'The Network Beneath',
+        text: 'Beneath your feet, the mycelium pulses like fiber optic cables. The forest is a living internet, connecting every tree, every plant, every being. You are a node in this network now.',
+        audio: 'audio/9-MushroomMycelumInternetTreeHugging.mp3',
+        next: 'treeBeing',
+        color: '#aa44cc'
+    },
+    
+    // 9 - Tree Being Job Panels
+    treeBeing: {
+        id: 'treeBeing',
+        title: '9: Tree Being - Job Panels',
+        subtitle: 'The Interview',
+        text: 'The trees present their credentials. Bark resumes, leaf portfolios, root references. They are applying for the position of your attention. You realize: you are being interviewed by the forest.',
+        audio: 'audio/9-TreeBeingJobPanels.mp3',
         next: 'ending',
-        color: '#00aa44'
+        color: '#44aa44'
     },
     
     // Ending
