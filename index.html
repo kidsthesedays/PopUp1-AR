@@ -25,7 +25,7 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            gap: 40px;
+            gap: 20px;
             padding: 40px;
             text-align: center;
         }
@@ -63,6 +63,15 @@
             min-height: 40px;
         }
         
+        /* Button container for navigation controls */
+        .button-container {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
         .next-button {
             padding: 16px 48px;
             background: #007aff;
@@ -86,6 +95,54 @@
         }
         
         .next-button:disabled {
+            background: #444;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        /* Back button for audio mode */
+        .back-button-audio {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .back-button-audio:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .back-button-audio:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Play/Pause button */
+        .play-pause-button {
+            padding: 12px 24px;
+            background: #34c759;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(52, 199, 89, 0.4);
+        }
+        
+        .play-pause-button:hover {
+            background: #2da74a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 199, 89, 0.6);
+        }
+        
+        .play-pause-button:disabled {
             background: #444;
             cursor: not-allowed;
             box-shadow: none;
@@ -116,6 +173,26 @@
             background: rgba(255, 255, 255, 0.25);
             border-color: rgba(255, 255, 255, 0.5);
             transform: translateY(-2px);
+        }
+        
+        /* Feedback button */
+        .feedback-button {
+            padding: 12px 24px;
+            background: #ff9500;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(255, 149, 0, 0.4);
+            margin-top: 20px;
+        }
+        
+        .feedback-button:hover {
+            background: #e68a00;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 149, 0, 0.6);
         }
         
         /* Test mode toggle button - only shown on first load */
@@ -299,6 +376,11 @@
             opacity: 0;
             transition: opacity 0.5s ease;
         }
+        
+        /* History tracking for back button state */
+        .has-history .back-button-audio:disabled {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -315,8 +397,17 @@
         <div class="track-info" id="node-id">start</div>
         <div class="node-text" id="node-text"></div>
         <div class="options-container" id="options-container"></div>
+        
+        <div class="button-container">
+            <button id="back-button-audio" class="back-button-audio" disabled>Back</button>
+            <button id="play-pause-button" class="play-pause-button">Play</button>
+            <button id="next-button-simple" class="next-button" disabled>Next</button>
+        </div>
+        
+        <!-- Feedback button (shown only at ending) -->
+        <button id="feedback-button" class="feedback-button" style="display: none;">Give Feedback</button>
+        
         <div class="loading" id="loading">Loading...</div>
-        <button id="next-button-simple" class="next-button" disabled>Next</button>
     </div>
     
     <!-- Test mode toggle - shown only on first load -->
@@ -489,8 +580,10 @@
                 this.masterGain = null;
                 this.currentSources = [];
                 this.isPlaying = false;
+                this.isPaused = false;
                 this.audioLoader = new AudioLoader(config);
                 this.preloaded = false;
+                this.history = []; // Navigation history for back button
                 
                 // Initialize audio context
                 this.initAudio();
@@ -521,10 +614,28 @@
                 return this.tree[nodeId];
             }
             
-            goTo(nodeId) {
+            goTo(nodeId, pushToHistory = true) {
                 if (this.tree[nodeId]) {
+                    // Save current node to history before navigating
+                    if (pushToHistory && this.currentNodeId) {
+                        this.history.push(this.currentNodeId);
+                    }
                     this.stopAll();
                     this.currentNodeId = nodeId;
+                    return true;
+                }
+                return false;
+            }
+            
+            canGoBack() {
+                return this.history.length > 0;
+            }
+            
+            goBack() {
+                if (this.history.length > 0) {
+                    const previousNodeId = this.history.pop();
+                    this.stopAll();
+                    this.currentNodeId = previousNodeId;
                     return true;
                 }
                 return false;
@@ -567,6 +678,23 @@
                 // Play the audio for this node
                 await this.playNodeAudio(node);
                 this.isPlaying = true;
+                this.isPaused = false;
+            }
+            
+            pause() {
+                this.stopAll();
+                this.isPaused = true;
+                this.isPlaying = false;
+            }
+            
+            togglePlayPause() {
+                if (this.isPaused) {
+                    this.play();
+                } else if (this.isPlaying) {
+                    this.pause();
+                } else {
+                    this.play();
+                }
             }
             
             async playNodeAudio(node) {
@@ -601,6 +729,8 @@
                 // Auto-cleanup when done
                 source.onended = () => {
                     this.cleanupSource(source);
+                    this.isPlaying = false;
+                    this.isPaused = false;
                 };
             }
             
@@ -636,6 +766,12 @@
                 let currentTime = this.audioContext.currentTime;
                 
                 config.notes.forEach(note => {
+                    // Skip silence notes (freq: 0)
+                    if (note.freq === 0) {
+                        currentTime += note.dur || 0.2;
+                        return;
+                    }
+                    
                     const osc = this.audioContext.createOscillator();
                     const gain = this.audioContext.createGain();
                     
@@ -659,6 +795,13 @@
                     
                     currentTime += note.dur || 0.2;
                 });
+                
+                // Auto-cleanup after sequence ends
+                const totalDuration = config.notes.reduce((sum, note) => sum + (note.dur || 0.2), 0);
+                setTimeout(() => {
+                    this.isPlaying = false;
+                    this.isPaused = false;
+                }, totalDuration * 1000);
             }
             
             cleanupSource(...sources) {
@@ -684,6 +827,7 @@
                 });
                 this.currentSources = [];
                 this.isPlaying = false;
+                this.isPaused = false;
             }
             
             cleanup() {
@@ -691,6 +835,12 @@
                 if (this.audioContext) {
                     this.audioContext.close().catch(() => {});
                 }
+            }
+            
+            // Get current node's feedback URL if it exists
+            getFeedbackUrl() {
+                const node = this.getCurrentNode();
+                return node ? node.feedbackUrl : null;
             }
         }
 
@@ -713,6 +863,9 @@
         const optionsContainerEl = document.getElementById('options-container');
         const loadingEl = document.getElementById('loading');
         const nextButtonSimple = document.getElementById('next-button-simple');
+        const backButtonSimple = document.getElementById('back-button-audio');
+        const playPauseButton = document.getElementById('play-pause-button');
+        const feedbackButton = document.getElementById('feedback-button');
         const backButton = document.getElementById('back-button');
         const preloadProgressEl = document.getElementById('preload-progress');
         const preloadBarEl = document.getElementById('preload-bar');
@@ -772,6 +925,9 @@
             }
             
             nextButtonSimple.textContent = UI_TEXT.nextButton || 'Next';
+            backButtonSimple.textContent = UI_TEXT.backButton || 'Back';
+            playPauseButton.textContent = UI_TEXT.playButton || 'Play';
+            feedbackButton.textContent = UI_TEXT.feedbackButton || 'Give Feedback';
         }
         
         function updateAudioModeUI() {
@@ -802,6 +958,37 @@
                 nodeTextEl.style.color = '#ccc';
             } else {
                 nodeTextEl.style.color = '#333';
+            }
+            
+            // Update button states
+            updateButtonStates();
+            
+            // Show/hide feedback button
+            if (node.feedbackUrl) {
+                feedbackButton.style.display = 'block';
+                feedbackButton.onclick = () => {
+                    window.open(node.feedbackUrl, '_blank');
+                };
+            } else {
+                feedbackButton.style.display = 'none';
+            }
+            
+            // Update play/pause button text
+            updatePlayPauseButton();
+        }
+        
+        function updateButtonStates() {
+            // Enable/disable back button based on history
+            backButtonSimple.disabled = !audioTreePlayer.canGoBack();
+        }
+        
+        function updatePlayPauseButton() {
+            if (audioTreePlayer.isPaused) {
+                playPauseButton.textContent = UI_TEXT.playButton || 'Play';
+            } else if (audioTreePlayer.isPlaying) {
+                playPauseButton.textContent = UI_TEXT.pauseButton || 'Pause';
+            } else {
+                playPauseButton.textContent = UI_TEXT.playButton || 'Play';
             }
         }
         
@@ -852,6 +1039,23 @@
             }
             
             nextButtonSimple.disabled = false;
+        }
+        
+        async function backTrack() {
+            backButtonSimple.disabled = true;
+            
+            const didGoBack = audioTreePlayer.goBack();
+            if (didGoBack) {
+                updateAudioModeUI();
+                await audioTreePlayer.play();
+            }
+            
+            backButtonSimple.disabled = false;
+        }
+        
+        function togglePlayPause() {
+            audioTreePlayer.togglePlayPause();
+            updatePlayPauseButton();
         }
         
         // Helper to check if color is dark
@@ -1197,8 +1401,10 @@
         // Setup test mode toggle
         testModeToggle.addEventListener('click', toggleTestMode);
         
-        // Setup simple mode next button
+        // Setup audio mode buttons
         nextButtonSimple.addEventListener('click', nextSimpleTrack);
+        backButtonSimple.addEventListener('click', backTrack);
+        playPauseButton.addEventListener('click', togglePlayPause);
         
         // Initialize based on mode
         if (isTestMode) {

@@ -67,6 +67,7 @@ const APP_CONFIG = {
 //   - next: Default next node ID (if no options specified)
 //   - color: Theme color for this node
 //   - background: Optional background color/image
+//   - feedbackUrl: Optional URL for feedback form (shown at end node)
 //
 // Audio can be:
 //   - String: URL to audio file (e.g., 'audio/chapter1.mp3')
@@ -175,7 +176,9 @@ const AUDIO_TREE = {
         ]},
         next: 'start',
         color: '#ffffff',
-        background: '#000000'
+        background: '#000000',
+        // Feedback form link (placeholder - replace with real Google Form URL)
+        feedbackUrl: 'https://example.com/feedback-placeholder'
     }
 };
 
@@ -190,6 +193,9 @@ const UI_TEXT = {
     startARButton: 'Start AR',
     testModeButton: 'Test Mode',
     backButton: 'Back to Audio',
+    playButton: 'Play',
+    pauseButton: 'Pause',
+    feedbackButton: 'Give Feedback',
     
     // Mode labels
     audioModeLabel: 'Audio Mode',
