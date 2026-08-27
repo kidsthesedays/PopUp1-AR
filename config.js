@@ -78,7 +78,7 @@ const AUDIO_TREE = {
     // Starting node
     start: {
         id: 'start',
-        title: 'PopUp1',
+        title: 'Co-incidence Generator ',
         subtitle: 'Click "Next" to begin the journey',
         text: 'Welcome to the experience. Press Next to start.',
         audio: { type: 'silence', duration: 0.1 },
@@ -90,9 +90,9 @@ const AUDIO_TREE = {
     chapter1: {
         id: 'chapter1',
         title: 'Chapter 1: The Beginning',
-        subtitle: 'A new world unfolds',
+        subtitle: 'A new adventure unfolds',
         text: 'In the beginning, there was only silence. Then, a single note emerged from the void.',
-        audio: { type: 'tone', frequency: 220, duration: 3, wave: 'sine' },
+        audio:  'audio/1-Falling.mp3',
         next: 'chapter2',
         color: '#007aff'
     },
