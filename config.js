@@ -28,7 +28,10 @@ const APP_CONFIG = {
         spatialAudio: true,
         
         // Auto-play next track when current finishes
-        autoAdvance: false
+        autoAdvance: false,
+        
+        // Preload all audio files at startup
+        preloadAudio: true
     },
     
     // AR settings (only used in AR mode)
@@ -92,7 +95,7 @@ const AUDIO_TREE = {
         title: 'Chapter 1: The Beginning',
         subtitle: 'A new adventure unfolds',
         text: 'In the beginning, there was only silence. Then, a single note emerged from the void.',
-        audio:  'audio/1-Falling.mp3',
+        audio: 'audio/1-Falling.mp3',
         next: 'chapter2',
         color: '#007aff'
     },

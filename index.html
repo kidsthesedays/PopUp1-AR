@@ -253,9 +253,61 @@
         .loading.active {
             display: block;
         }
+        
+        /* Preload progress */
+        .preload-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+        }
+        
+        .preload-progress .bar {
+            height: 100%;
+            background: #007aff;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .preload-progress.complete {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .preload-status {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 10001;
+            display: none;
+        }
+        
+        .preload-status.active {
+            display: block;
+        }
+        
+        .preload-status.complete {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
     </style>
 </head>
 <body>
+    <!-- Preload progress bar -->
+    <div class="preload-progress" id="preload-progress">
+        <div class="bar" id="preload-bar"></div>
+    </div>
+    <div class="preload-status" id="preload-status"></div>
+    
     <!-- Audio-only mode (default) -->
     <div id="audio-mode" class="audio-mode">
         <h1 id="node-title">PopUp1</h1>
@@ -303,6 +355,128 @@
         // ============================================
 
         // ============================================
+        // AUDIO LOADER
+        // Handles preloading and caching of audio files
+        // ============================================
+
+        class AudioLoader {
+            constructor(config) {
+                this.config = config;
+                this.audioContext = null;
+                this.audioBuffers = {}; // URL -> AudioBuffer
+                this.loadingPromises = {}; // URL -> Promise
+                this.totalFiles = 0;
+                this.loadedFiles = 0;
+                this.onProgress = null;
+                this.onComplete = null;
+            }
+            
+            init(audioContext) {
+                this.audioContext = audioContext;
+            }
+            
+            // Extract all audio file URLs from the tree
+            extractAudioURLs(tree) {
+                const urls = new Set();
+                Object.values(tree).forEach(node => {
+                    if (typeof node.audio === 'string') {
+                        urls.add(node.audio);
+                    }
+                });
+                return Array.from(urls);
+            }
+            
+            // Preload all audio files
+            async preload(tree) {
+                const urls = this.extractAudioURLs(tree);
+                this.totalFiles = urls.length;
+                this.loadedFiles = 0;
+                
+                if (this.totalFiles === 0) {
+                    this.onComplete && this.onComplete();
+                    return Promise.resolve();
+                }
+                
+                const promises = urls.map(url => this.loadAudio(url));
+                await Promise.all(promises);
+                
+                this.onComplete && this.onComplete();
+            }
+            
+            // Load a single audio file
+            async loadAudio(url) {
+                // Skip if already loaded
+                if (this.audioBuffers[url]) {
+                    this.updateProgress();
+                    return;
+                }
+                
+                // Skip if already loading
+                if (this.loadingPromises[url]) {
+                    await this.loadingPromises[url];
+                    return;
+                }
+                
+                this.loadingPromises[url] = new Promise(async (resolve, reject) => {
+                    try {
+                        // Handle data URIs (for generated tones)
+                        if (url.startsWith('data:')) {
+                            const response = await fetch(url);
+                            const arrayBuffer = await response.arrayBuffer();
+                            const buffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                            this.audioBuffers[url] = buffer;
+                            this.updateProgress();
+                            resolve();
+                            return;
+                        }
+                        
+                        // For GitHub Pages, we need to handle CORS
+                        // Try direct fetch first
+                        try {
+                            const response = await fetch(url);
+                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            const arrayBuffer = await response.arrayBuffer();
+                            const buffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                            this.audioBuffers[url] = buffer;
+                            this.updateProgress();
+                            resolve();
+                        } catch (error) {
+                            // If direct fetch fails, try with CORS proxy or same-origin
+                            console.warn(`Direct fetch failed for ${url}, trying with credentials:`, error);
+                            const response = await fetch(url, { credentials: 'same-origin' });
+                            const arrayBuffer = await response.arrayBuffer();
+                            const buffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                            this.audioBuffers[url] = buffer;
+                            this.updateProgress();
+                            resolve();
+                        }
+                    } catch (error) {
+                        console.error(`Failed to load audio: ${url}`, error);
+                        // Create a silent buffer as fallback
+                        const silentBuffer = this.audioContext.createBuffer(1, 1, this.audioContext.sampleRate);
+                        this.audioBuffers[url] = silentBuffer;
+                        this.updateProgress();
+                        resolve();
+                    } finally {
+                        delete this.loadingPromises[url];
+                    }
+                });
+                
+                await this.loadingPromises[url];
+            }
+            
+            getBuffer(url) {
+                return this.audioBuffers[url];
+            }
+            
+            updateProgress() {
+                this.loadedFiles++;
+                const progress = Math.round((this.loadedFiles / this.totalFiles) * 100);
+                this.onProgress && this.onProgress(progress, this.loadedFiles, this.totalFiles);
+            }
+        }
+
+        // ============================================
         // AUDIO TREE NAVIGATION ENGINE
         // ============================================
 
@@ -313,8 +487,10 @@
                 this.currentNodeId = config.defaultStartNode || 'start';
                 this.audioContext = null;
                 this.masterGain = null;
-                this.currentOscillators = [];
+                this.currentSources = [];
                 this.isPlaying = false;
+                this.audioLoader = new AudioLoader(config);
+                this.preloaded = false;
                 
                 // Initialize audio context
                 this.initAudio();
@@ -325,6 +501,16 @@
                 this.masterGain = this.audioContext.createGain();
                 this.masterGain.gain.value = this.config.audio.masterVolume || 0.5;
                 this.masterGain.connect(this.audioContext.destination);
+                
+                // Initialize audio loader
+                this.audioLoader.init(this.audioContext);
+            }
+            
+            async preload() {
+                if (this.config.audio.preloadAudio !== false) {
+                    await this.audioLoader.preload(this.tree);
+                    this.preloaded = true;
+                }
             }
             
             getCurrentNode() {
@@ -367,7 +553,7 @@
                 return false;
             }
             
-            play() {
+            async play() {
                 const node = this.getCurrentNode();
                 if (!node) return;
                 
@@ -375,20 +561,19 @@
                 
                 // Resume audio context if suspended
                 if (this.audioContext.state === 'suspended') {
-                    this.audioContext.resume();
+                    await this.audioContext.resume();
                 }
                 
                 // Play the audio for this node
-                this.playNodeAudio(node);
+                await this.playNodeAudio(node);
                 this.isPlaying = true;
             }
             
-            playNodeAudio(node) {
+            async playNodeAudio(node) {
                 if (!node.audio) return;
                 
                 if (typeof node.audio === 'string') {
-                    // URL-based audio
-                    this.playAudioURL(node.audio);
+                    await this.playAudioURL(node.audio);
                 } else if (node.audio.type === 'tone') {
                     this.playTone(node.audio);
                 } else if (node.audio.type === 'sequence') {
@@ -397,9 +582,26 @@
                 // silence type doesn't need to play anything
             }
             
-            playAudioURL(url) {
-                // For now, just log - would need AudioBuffer loading
-                console.log('Would play audio URL:', url);
+            async playAudioURL(url) {
+                const buffer = this.audioLoader.getBuffer(url);
+                
+                if (!buffer) {
+                    console.warn(`Audio buffer not preloaded for ${url}, loading now...`);
+                    await this.audioLoader.loadAudio(url);
+                }
+                
+                const source = this.audioContext.createBufferSource();
+                source.buffer = this.audioLoader.getBuffer(url);
+                source.connect(this.masterGain);
+                
+                source.start();
+                
+                this.currentSources.push(source);
+                
+                // Auto-cleanup when done
+                source.onended = () => {
+                    this.cleanupSource(source);
+                };
             }
             
             playTone(config) {
@@ -424,7 +626,10 @@
                 osc.start();
                 osc.stop(endTime);
                 
-                this.currentOscillators.push({ osc, gain, endTime });
+                this.currentSources.push(osc, gain);
+                
+                // Auto-cleanup
+                setTimeout(() => this.cleanupSource(osc, gain), (config.duration || 2) * 1000);
             }
             
             playSequence(config) {
@@ -450,23 +655,34 @@
                     osc.start(currentTime);
                     osc.stop(currentTime + (note.dur || 0.2));
                     
-                    this.currentOscillators.push({ osc, gain });
+                    this.currentSources.push(osc, gain);
                     
                     currentTime += note.dur || 0.2;
                 });
             }
             
-            stopAll() {
-                this.currentOscillators.forEach(({ osc, gain }) => {
+            cleanupSource(...sources) {
+                sources.forEach(source => {
                     try {
-                        osc.stop();
-                        osc.disconnect();
-                        gain.disconnect();
+                        source.stop();
+                        source.disconnect();
                     } catch (e) {
                         // Already stopped
                     }
                 });
-                this.currentOscillators = [];
+                this.currentSources = this.currentSources.filter(s => !sources.includes(s));
+            }
+            
+            stopAll() {
+                this.currentSources.forEach(source => {
+                    try {
+                        source.stop();
+                        source.disconnect();
+                    } catch (e) {
+                        // Already stopped
+                    }
+                });
+                this.currentSources = [];
                 this.isPlaying = false;
             }
             
@@ -498,6 +714,9 @@
         const loadingEl = document.getElementById('loading');
         const nextButtonSimple = document.getElementById('next-button-simple');
         const backButton = document.getElementById('back-button');
+        const preloadProgressEl = document.getElementById('preload-progress');
+        const preloadBarEl = document.getElementById('preload-bar');
+        const preloadStatusEl = document.getElementById('preload-status');
 
         // Create audio tree player
         let audioTreePlayer = null;
@@ -506,22 +725,53 @@
         // AUDIO-ONLY MODE
         // ============================================
 
-        function initAudioMode() {
+        async function initAudioMode() {
             audioModeEl.style.display = 'flex';
             arContainerEl.classList.remove('active');
             
             // Initialize audio tree player
             audioTreePlayer = new AudioTreePlayer(AUDIO_TREE, APP_CONFIG);
             
-            // Update UI with current node
-            updateAudioModeUI();
+            // Show loading
+            loadingEl.classList.add('active');
+            loadingEl.textContent = UI_TEXT.loadingAudio || 'Loading audio...';
             
-            // Enable next button
-            nextButtonSimple.disabled = false;
+            // Preload audio if configured
+            if (APP_CONFIG.audio.preloadAudio !== false) {
+                preloadProgressEl.classList.remove('complete');
+                preloadStatusEl.classList.add('active');
+                
+                audioTreePlayer.audioLoader.onProgress = (progress, loaded, total) => {
+                    preloadBarEl.style.width = `${progress}%`;
+                    preloadStatusEl.textContent = `Loading ${loaded}/${total} audio files...`;
+                };
+                
+                audioTreePlayer.audioLoader.onComplete = () => {
+                    preloadProgressEl.classList.add('complete');
+                    preloadStatusEl.classList.add('complete');
+                    setTimeout(() => {
+                        preloadStatusEl.classList.remove('active');
+                    }, 500);
+                    
+                    // Hide loading, show content
+                    loadingEl.classList.remove('active');
+                    updateAudioModeUI();
+                    nextButtonSimple.disabled = false;
+                    
+                    // Start playing
+                    audioTreePlayer.play();
+                };
+                
+                await audioTreePlayer.preload();
+            } else {
+                // No preloading, just show content
+                loadingEl.classList.remove('active');
+                updateAudioModeUI();
+                nextButtonSimple.disabled = false;
+                audioTreePlayer.play();
+            }
+            
             nextButtonSimple.textContent = UI_TEXT.nextButton || 'Next';
-            
-            // Start playing
-            audioTreePlayer.play();
         }
         
         function updateAudioModeUI() {
@@ -587,22 +837,25 @@
             }
         }
         
-        function nextSimpleTrack() {
+        async function nextSimpleTrack() {
+            nextButtonSimple.disabled = true;
+            
             const didAdvance = audioTreePlayer.next();
             if (didAdvance) {
                 updateAudioModeUI();
-                audioTreePlayer.play();
+                await audioTreePlayer.play();
             } else {
                 // No next node, restart from beginning
                 audioTreePlayer.goTo('start');
                 updateAudioModeUI();
-                audioTreePlayer.play();
+                await audioTreePlayer.play();
             }
+            
+            nextButtonSimple.disabled = false;
         }
         
         // Helper to check if color is dark
         function isDarkColor(color) {
-            // Simple heuristic - if it starts with # and has low RGB values
             if (color.startsWith('#')) {
                 const r = parseInt(color.slice(1, 3), 16);
                 const g = parseInt(color.slice(3, 5), 16);
@@ -706,6 +959,9 @@
             
             // Initialize AR audio tree player
             arAudioTreePlayer = new AudioTreePlayer(AUDIO_TREE, APP_CONFIG);
+            
+            // Preload audio for AR mode
+            await arAudioTreePlayer.preload();
             
             console.log('Full AR mode ready.');
             
@@ -831,13 +1087,13 @@
             });
             
             // Next button - navigate audio tree
-            document.getElementById('next-button-ar').addEventListener('click', () => {
+            document.getElementById('next-button-ar').addEventListener('click', async () => {
                 const didAdvance = arAudioTreePlayer.next();
                 if (didAdvance) {
-                    arAudioTreePlayer.play();
+                    await arAudioTreePlayer.play();
                 } else {
                     arAudioTreePlayer.goTo('start');
-                    arAudioTreePlayer.play();
+                    await arAudioTreePlayer.play();
                 }
             });
             
