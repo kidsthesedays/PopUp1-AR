@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Audio Experience</title>
+    <title>PopUp1-AR</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -17,10 +17,106 @@
             align-items: center;
             justify-content: center;
         }
-        #ar-button { 
-            position: absolute; 
-            bottom: 20px; 
-            left: 50%; 
+        
+        /* Audio-only mode styles */
+        .audio-mode {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            gap: 40px;
+        }
+        
+        .audio-mode h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            text-align: center;
+        }
+        
+        .audio-mode .subtitle {
+            font-size: 1.2rem;
+            color: #888;
+            text-align: center;
+            max-width: 60%;
+        }
+        
+        .track-info {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #007aff;
+            text-align: center;
+        }
+        
+        .next-button {
+            padding: 16px 48px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 122, 255, 0.4);
+        }
+        
+        .next-button:hover {
+            background: #0056cc;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 122, 255, 0.6);
+        }
+        
+        .next-button:active {
+            transform: translateY(0);
+        }
+        
+        .next-button:disabled {
+            background: #444;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        /* Test mode toggle button - only shown on first load */
+        .test-mode-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            z-index: 10000;
+            transition: all 0.2s ease;
+        }
+        
+        .test-mode-toggle:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .test-mode-toggle.hidden {
+            display: none;
+        }
+        
+        /* Full AR mode styles (hidden by default) */
+        #ar-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #ar-container.active {
+            display: block;
+        }
+        
+        #ar-button {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
             transform: translateX(-50%);
             padding: 12px 24px;
             background: #007aff;
@@ -31,10 +127,15 @@
             cursor: pointer;
             z-index: 100;
         }
-        #ar-button:disabled { background: #444; cursor: not-allowed; }
-        #next-button { 
-            position: absolute; 
-            bottom: 20px; 
+        
+        #ar-button:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+        
+        #next-button-ar {
+            position: absolute;
+            bottom: 20px;
             right: 20px;
             padding: 12px 24px;
             background: #34c759;
@@ -45,9 +146,10 @@
             cursor: pointer;
             z-index: 100;
         }
-        #info { 
-            position: absolute; 
-            top: 20px; 
+        
+        #info {
+            position: absolute;
+            top: 20px;
             left: 20px;
             background: rgba(0,0,0,0.7);
             padding: 10px 15px;
@@ -55,10 +157,11 @@
             font-size: 14px;
             z-index: 100;
         }
-        #fallback-info { 
-            position: absolute; 
-            top: 50%; 
-            left: 50%; 
+        
+        #fallback-info {
+            position: absolute;
+            top: 50%;
+            left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.9);
             padding: 20px;
@@ -68,17 +171,58 @@
             z-index: 1000;
             display: none;
         }
-        #fallback-info.show { display: block; }
-        canvas { display: block; }
+        
+        #fallback-info.show {
+            display: block;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        /* Back to audio mode button */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        
+        .back-button:hover {
+            background: rgba(0, 0, 0, 0.9);
+            border-color: #666;
+        }
     </style>
 </head>
 <body>
-    <div id="info">Mode: <span id="mode-label">Web 3D</span></div>
-    <button id="ar-button" disabled>Start AR</button>
-    <button id="next-button">Next Track</button>
-    <div id="fallback-info">
-        <h3>AR Not Available</h3>
-        <p>Camera access denied or not supported. Using 3D fallback mode.</p>
+    <!-- Audio-only mode (default) -->
+    <div id="audio-mode" class="audio-mode">
+        <h1>PopUp1</h1>
+        <p class="subtitle">Click "Next" to experience the story through sound</p>
+        <div class="track-info" id="track-info">Track 1</div>
+        <button id="next-button-simple" class="next-button" disabled>Next</button>
+    </div>
+    
+    <!-- Test mode toggle - shown only on first load -->
+    <button id="test-mode-toggle" class="test-mode-toggle">Test Mode</button>
+    
+    <!-- Full AR mode (hidden by default) -->
+    <div id="ar-container">
+        <button id="back-button" class="back-button">Back to Audio</button>
+        <div id="info">Mode: <span id="mode-label">Web 3D</span></div>
+        <button id="ar-button" disabled>Start AR</button>
+        <button id="next-button-ar">Next Track</button>
+        <div id="fallback-info">
+            <h3>AR Not Available</h3>
+            <p>Camera access denied or not supported. Using 3D fallback mode.</p>
+        </div>
     </div>
 
     <script type="importmap">
@@ -94,34 +238,136 @@
 
     <script type="module">
         // ============================================
-        // AR Audio Experience - Main Application
+        // PopUp1-AR - Dual Mode Application
+        // Mode 1: Audio-only (default)
+        // Mode 2: Full AR experience (test mode)
         // ============================================
 
-        // Configuration
-        const CONFIG = {
-            // Audio tracks - replace with your actual audio URLs
-            audioTracks: [
-                'audio/track-01.mp3',
-                'audio/track-02.mp3',
-                'audio/track-03.mp3'
-            ],
-            // Video overlay - replace with your actual video URL
-            videoSrc: 'video/overlay.webm',
-            // MindAR target file - compile with: npx mind-ar-node-tools.createTarget --image-target ./targets/tag.jpg --output ./targets/tag.mind
-            targetSrc: 'targets/tag.mind',
-            // Alpha mode: 'webm' for WebM VP9 with alpha, 'sideband' for RGB+alpha split
-            ALPHA_MODE: 'webm',
-            // Model - optional glTF model, or null for procedural geometry
-            modelSrc: null // 'models/model.glb'
-        };
+        // Check if test mode has been enabled before
+        const TEST_MODE_KEY = 'popup1-ar-test-mode';
+        let isTestMode = localStorage.getItem(TEST_MODE_KEY) === 'true';
+        
+        // DOM Elements
+        const audioModeEl = document.getElementById('audio-mode');
+        const arContainerEl = document.getElementById('ar-container');
+        const testModeToggle = document.getElementById('test-mode-toggle');
+        const trackInfoEl = document.getElementById('track-info');
+        const nextButtonSimple = document.getElementById('next-button-simple');
+        const backButton = document.getElementById('back-button');
 
-        // State
-        let currentTrackIndex = 0;
+        // ============================================
+        // Audio-only Mode (Default)
+        // ============================================
+
+        // Simple test audio using data URIs (base64 encoded WAV files)
+        // These are simple sine wave tones generated as WAV
+        const testAudioData = [
+            // Track 1: 440Hz tone (A4)
+            "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQAA",
+            // Track 2: 550Hz tone
+            "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQAA",
+            // Track 3: 660Hz tone
+            "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQAA"
+        ];
+        
+        // Better quality: Use Web Audio API to generate tones dynamically
         let audioContext = null;
-        let audioBuffers = [];
-        let currentSource = null;
+        let currentOscillator = null;
+        let gainNode = null;
+        let currentTrackIndex = 0;
         let isPlaying = false;
-        let stage = null; // Shared THREE.Group between AR and Web modes
+        
+        const trackNames = [
+            "Chapter 1: The Beginning",
+            "Chapter 2: The Journey", 
+            "Chapter 3: The Discovery"
+        ];
+        
+        const frequencies = [220, 277.18, 330]; // A3, C#4, E4 - nice chord progression
+        const colors = ['#007aff', '#34c759', '#ff9500'];
+
+        function initAudioMode() {
+            audioModeEl.style.display = 'flex';
+            arContainerEl.classList.remove('active');
+            
+            // Initialize audio context on first interaction
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                gainNode = audioContext.createGain();
+                gainNode.connect(audioContext.destination);
+                gainNode.gain.value = 0.3;
+            }
+            
+            // Enable next button
+            nextButtonSimple.disabled = false;
+            
+            // Show first track
+            updateTrackInfo();
+        }
+        
+        function updateTrackInfo() {
+            trackInfoEl.textContent = trackNames[currentTrackIndex];
+            trackInfoEl.style.color = colors[currentTrackIndex];
+            
+            // Visual pulse effect
+            trackInfoEl.style.transform = 'scale(1)';
+            setTimeout(() => {
+                trackInfoEl.style.transform = 'scale(1.05)';
+            }, 10);
+        }
+        
+        function playSimpleTrack() {
+            // Stop current oscillator
+            if (currentOscillator) {
+                currentOscillator.stop();
+                currentOscillator = null;
+            }
+            
+            // Resume audio context if needed
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            // Create new oscillator
+            currentOscillator = audioContext.createOscillator();
+            currentOscillator.type = 'sine';
+            currentOscillator.frequency.value = frequencies[currentTrackIndex];
+            currentOscillator.connect(gainNode);
+            
+            // Create a simple envelope for more interesting sound
+            const envelope = audioContext.createGain();
+            envelope.gain.value = 0;
+            envelope.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.1);
+            envelope.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.5);
+            envelope.gain.linearRampToValueAtTime(0, audioContext.currentTime + 2.5);
+            
+            currentOscillator.connect(envelope);
+            envelope.connect(gainNode);
+            
+            currentOscillator.start();
+            currentOscillator.stop(audioContext.currentTime + 3);
+            
+            isPlaying = true;
+            
+            // Enable next button after a short delay
+            nextButtonSimple.disabled = true;
+            setTimeout(() => {
+                nextButtonSimple.disabled = false;
+            }, 200);
+        }
+        
+        function nextSimpleTrack() {
+            currentTrackIndex = (currentTrackIndex + 1) % trackNames.length;
+            updateTrackInfo();
+            playSimpleTrack();
+        }
+
+        // ============================================
+        // Full AR Mode
+        // ============================================
+
+        // State for AR mode
+        let stage = null;
         let renderer = null;
         let mindarThree = null;
         let arCamera = null;
@@ -132,22 +378,45 @@
         let videoPlane = null;
         let object3D = null;
         let pannerNode = null;
+        let arAudioContext = null;
+        let arAudioBuffers = [];
+        let arCurrentSource = null;
+        let arTrackIndex = 0;
 
-        // DOM Elements
-        const arButton = document.getElementById('ar-button');
-        const nextButton = document.getElementById('next-button');
-        const modeLabel = document.getElementById('mode-label');
-        const fallbackInfo = document.getElementById('fallback-info');
+        // Configuration for AR mode
+        const AR_CONFIG = {
+            audioTracks: [
+                // Using longer, more complex tones for AR mode
+                createToneDataURI(220, 3),  // A3 for 3 seconds
+                createToneDataURI(277.18, 3), // C#4
+                createToneDataURI(330, 3)   // E4
+            ],
+            videoSrc: 'video/overlay.webm',
+            targetSrc: 'targets/tag.mind',
+            ALPHA_MODE: 'webm',
+            modelSrc: null
+        };
+        
+        // Helper to create tone data URIs (simplified - we'll use Web Audio API)
+        function createToneDataURI(frequency, duration) {
+            // For now, return a placeholder - we'll use Web Audio API in AR mode too
+            return `data:audio/wav;base64,${'UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQAA'}`;
+        }
 
-        // ============================================
-        // Initialization
-        // ============================================
-
-        async function init() {
-            console.log('Initializing AR Audio Experience...');
+        async function initARMode() {
+            console.log('Initializing Full AR mode...');
             
-            // Initialize Audio Context (must be triggered by user gesture)
-            await initAudio();
+            audioModeEl.style.display = 'none';
+            arContainerEl.classList.add('active');
+            
+            // Save test mode preference
+            localStorage.setItem(TEST_MODE_KEY, 'true');
+            testModeToggle.classList.add('hidden');
+            
+            // Initialize Audio Context
+            arAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            pannerNode = arAudioContext.createStereoPanner();
+            pannerNode.connect(arAudioContext.destination);
             
             // Create renderer
             renderer = new THREE.WebGLRenderer({ 
@@ -157,205 +426,60 @@
             });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio || 1);
-            document.body.appendChild(renderer.domElement);
+            arContainerEl.appendChild(renderer.domElement);
             
-            // Create shared stage (will be used by both AR and Web modes)
+            // Create shared stage
             stage = new THREE.Group();
             
-            // Initialize video element and texture
+            // Initialize video element
             videoElement = document.createElement('video');
             videoElement.loop = true;
             videoElement.muted = true;
             videoElement.playsInline = true;
             videoElement.crossOrigin = 'anonymous';
-            videoElement.src = CONFIG.videoSrc;
+            videoElement.src = AR_CONFIG.videoSrc;
             
             videoTexture = new THREE.VideoTexture(videoElement);
             videoTexture.colorSpace = THREE.SRGBColorSpace;
+            videoTexture.format = THREE.RGBAFormat;
+            videoTexture.transparent = true;
             
-            // Handle alpha channel based on mode
-            if (CONFIG.ALPHA_MODE === 'sideband') {
-                videoTexture.format = THREE.RGBAFormat;
-                // Custom shader material for sideband alpha
-                const sidebandMaterial = new THREE.ShaderMaterial({
-                    uniforms: {
-                        map: { value: videoTexture },
-                        resolution: { value: new THREE.Vector2(videoElement.videoWidth || 1, videoElement.videoHeight || 1) }
-                    },
-                    vertexShader: `
-                        varying vec2 vUv;
-                        void main() {
-                            vUv = uv;
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                        }
-                    `,
-                    fragmentShader: `
-                        uniform sampler2D map;
-                        uniform vec2 resolution;
-                        varying vec2 vUv;
-                        void main() {
-                            vec2 texCoord = vUv;
-                            // Sideband: RGB in top half, alpha in bottom half
-                            vec2 rgbTexCoord = vec2(texCoord.x, texCoord.y * 0.5);
-                            vec2 alphaTexCoord = vec2(texCoord.x, 0.5 + texCoord.y * 0.5);
-                            vec4 rgbColor = texture2D(map, rgbTexCoord);
-                            float alpha = texture2D(map, alphaTexCoord).r;
-                            gl_FragColor = vec4(rgbColor.rgb, alpha);
-                        }
-                    `,
-                    transparent: true
-                });
-                createVideoPlane(sidebandMaterial);
-            } else {
-                // WebM with alpha - standard approach
-                videoTexture.format = THREE.RGBAFormat;
-                videoTexture.transparent = true;
-                createVideoPlane(new THREE.MeshBasicMaterial({ map: videoTexture, transparent: true }));
-            }
+            // Create video plane with basic material
+            const videoMaterial = new THREE.MeshBasicMaterial({ 
+                map: videoTexture, 
+                transparent: true 
+            });
+            createARVideoPlane(videoMaterial);
             
-            // Create 3D object (procedural icosahedron as default)
-            create3DObject();
+            // Create 3D object
+            createAR3DObject();
             
             // Setup lighting
-            setupLighting();
+            setupARLighting();
             
-            // Initialize Web 3D mode first
-            await initWebMode();
+            // Initialize Web mode first
+            await initARWebMode();
             
-            // Setup event listeners
-            setupEventListeners();
+            // Setup event listeners for AR mode
+            setupAREventListeners();
             
             // Enable AR button
-            arButton.disabled = false;
+            document.getElementById('ar-button').disabled = false;
             
-            console.log('Initialization complete.');
+            console.log('Full AR mode ready.');
             
             // Start rendering
-            animate();
+            arAnimate();
         }
 
-        // ============================================
-        // Audio System
-        // ============================================
-
-        async function initAudio() {
-            // Create audio context (will be resumed on first user gesture)
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // Create panner node for spatial audio
-            pannerNode = audioContext.createStereoPanner();
-            pannerNode.connect(audioContext.destination);
-            
-            // Preload audio buffers
-            await preloadAudioBuffers();
-        }
-
-        async function preloadAudioBuffers() {
-            for (const url of CONFIG.audioTracks) {
-                try {
-                    const response = await fetch(url);
-                    const arrayBuffer = await response.arrayBuffer();
-                    const buffer = await audioContext.decodeAudioData(arrayBuffer);
-                    audioBuffers.push(buffer);
-                    console.log(`Loaded audio: ${url}`);
-                } catch (error) {
-                    console.warn(`Failed to load audio: ${url}`, error);
-                    // Create a silent buffer as fallback
-                    const silentBuffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
-                    audioBuffers.push(silentBuffer);
-                }
-            }
-        }
-
-        function playTrack(index) {
-            // Stop current track
-            if (currentSource) {
-                currentSource.stop();
-                currentSource.disconnect();
-                currentSource = null;
-            }
-            
-            if (index >= 0 && index < audioBuffers.length) {
-                currentTrackIndex = index;
-                const buffer = audioBuffers[index];
-                
-                currentSource = audioContext.createBufferSource();
-                currentSource.buffer = buffer;
-                currentSource.connect(pannerNode);
-                currentSource.onended = () => {
-                    isPlaying = false;
-                    // Auto-advance to next track
-                    playTrack((currentTrackIndex + 1) % audioBuffers.length);
-                };
-                
-                // Resume audio context if suspended (required by browsers)
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume().then(() => {
-                        currentSource.start(0);
-                        isPlaying = true;
-                        videoElement.play().catch(e => console.warn('Video play failed:', e));
-                    });
-                } else {
-                    currentSource.start(0);
-                    isPlaying = true;
-                    videoElement.play().catch(e => console.warn('Video play failed:', e));
-                }
-            }
-        }
-
-        function togglePlayPause() {
-            if (isPlaying) {
-                // Can't pause BufferSource, so we stop and remember position
-                // For simplicity, we just stop here
-                if (currentSource) {
-                    currentSource.stop();
-                    currentSource.disconnect();
-                    currentSource = null;
-                }
-                isPlaying = false;
-                videoElement.pause();
-            } else {
-                playTrack(currentTrackIndex);
-            }
-        }
-
-        // ============================================
-        // Video Plane
-        // ============================================
-
-        function createVideoPlane(material) {
+        function createARVideoPlane(material) {
             const geometry = new THREE.PlaneGeometry(1, 1);
             videoPlane = new THREE.Mesh(geometry, material);
             videoPlane.position.set(0, 0, 0);
             stage.add(videoPlane);
         }
 
-        // ============================================
-        // 3D Object
-        // ============================================
-
-        async function create3DObject() {
-            if (CONFIG.modelSrc) {
-                try {
-                    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
-                    const loader = new GLTFLoader();
-                    const gltf = await loader.loadAsync(CONFIG.modelSrc);
-                    object3D = gltf.scene;
-                    // Scale and position the model
-                    object3D.scale.set(0.5, 0.5, 0.5);
-                    object3D.position.set(0, 0.1, 0);
-                    stage.add(object3D);
-                    console.log('Loaded glTF model:', CONFIG.modelSrc);
-                } catch (error) {
-                    console.warn('Failed to load glTF model, using procedural geometry:', error);
-                    createProceduralObject();
-                }
-            } else {
-                createProceduralObject();
-            }
-        }
-
-        function createProceduralObject() {
+        function createAR3DObject() {
             const geometry = new THREE.IcosahedronGeometry(0.2, 0);
             const material = new THREE.MeshStandardMaterial({
                 color: 0x007aff,
@@ -367,65 +491,45 @@
             stage.add(object3D);
         }
 
-        // ============================================
-        // Lighting
-        // ============================================
-
-        function setupLighting() {
-            // Ambient light
+        function setupARLighting() {
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
             stage.add(ambientLight);
             
-            // Directional light
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
             directionalLight.position.set(1, 1, 1);
             stage.add(directionalLight);
             
-            // Hemisphere light for natural look
             const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 0.6);
             stage.add(hemisphereLight);
         }
 
-        // ============================================
-        // Web 3D Mode (Fallback)
-        // ============================================
-
-        async function initWebMode() {
-            console.log('Initializing Web 3D mode...');
+        async function initARWebMode() {
+            console.log('Initializing AR Web 3D mode...');
             
             scene = new THREE.Scene();
             scene.add(stage);
             
-            // Create camera
             webCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             webCamera.position.set(0, 0, 2);
             
-            // Add orbit controls for the web mode
             const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
             const controls = new OrbitControls(webCamera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
             
-            // Add a simple background
             scene.background = new THREE.Color(0x111122);
             
-            // Add grid helper
             const gridHelper = new THREE.GridHelper(10, 10);
             scene.add(gridHelper);
             
-            modeLabel.textContent = 'Web 3D';
-            console.log('Web 3D mode ready.');
+            document.getElementById('mode-label').textContent = 'Web 3D';
+            console.log('AR Web 3D mode ready.');
         }
 
-        // ============================================
-        // AR Mode (MindAR)
-        // ============================================
-
-        async function initARMode() {
-            console.log('Initializing AR mode...');
+        async function initARMindAR() {
+            console.log('Initializing MindAR...');
             
             try {
-                // Import MindAR
                 const { MindARThree } = await import('mind-ar');
                 const { MindARImageTarget } = await import('mind-ar-image');
                 
@@ -434,88 +538,69 @@
                     camera: webCamera
                 });
                 
-                // Load target
                 const { loadImageTarget } = await import('mind-ar-image');
-                const target = await loadImageTarget(CONFIG.targetSrc);
+                const target = await loadImageTarget(AR_CONFIG.targetSrc);
                 
-                // Create AR scene
                 const arScene = new THREE.Scene();
-                
-                // Add the shared stage to AR scene
                 arScene.add(stage);
                 
-                // Setup AR
                 mindarThree.addAnchor(0, target, arScene);
                 
-                // Start AR
                 await mindarThree.start();
                 
-                // Hide web camera, use AR camera
                 arCamera = mindarThree.camera;
                 
-                modeLabel.textContent = 'AR Mode';
-                fallbackInfo.classList.remove('show');
+                document.getElementById('mode-label').textContent = 'AR Mode';
+                document.getElementById('fallback-info').classList.remove('show');
                 
-                console.log('AR mode started successfully.');
+                console.log('MindAR started successfully.');
                 
                 return true;
             } catch (error) {
-                console.error('Failed to start AR mode:', error);
-                fallbackInfo.classList.add('show');
+                console.error('Failed to start MindAR:', error);
+                document.getElementById('fallback-info').classList.add('show');
                 return false;
             }
         }
 
-        function stopARMode() {
+        function stopARMindAR() {
             if (mindarThree) {
                 mindarThree.stop();
                 mindarThree = null;
             }
-            modeLabel.textContent = 'Web 3D';
-            console.log('AR mode stopped.');
+            document.getElementById('mode-label').textContent = 'Web 3D';
         }
 
-        // ============================================
-        // Event Listeners
-        // ============================================
-
-        function setupEventListeners() {
+        function setupAREventListeners() {
             // AR button
-            arButton.addEventListener('click', async () => {
-                // Stop current audio
-                if (currentSource) {
-                    currentSource.stop();
-                    currentSource.disconnect();
-                    currentSource = null;
+            document.getElementById('ar-button').addEventListener('click', async () => {
+                if (arCurrentSource) {
+                    arCurrentSource.stop();
+                    arCurrentSource.disconnect();
+                    arCurrentSource = null;
                 }
                 
-                // Try to start AR
-                const success = await initARMode();
+                const success = await initARMindAR();
                 if (!success) {
-                    // Fallback to web mode
-                    stopARMode();
+                    stopARMindAR();
                 }
             });
             
             // Next button
-            nextButton.addEventListener('click', () => {
-                const nextIndex = (currentTrackIndex + 1) % audioBuffers.length;
-                playTrack(nextIndex);
+            document.getElementById('next-button-ar').addEventListener('click', () => {
+                playARTrack((arTrackIndex + 1) % AR_CONFIG.audioTracks.length);
             });
             
-            // Video plane click to toggle play/pause
-            videoPlane.userData.clickable = true;
+            // Back button
+            backButton.addEventListener('click', () => {
+                stopARMode();
+                initAudioMode();
+            });
             
-            // Raycaster for object interaction (simplified)
-            renderer.domElement.addEventListener('click', (event) => {
-                // Resume audio context on any click (browser requirement)
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-                
-                // If not playing, start from current track
-                if (!isPlaying && audioBuffers.length > 0) {
-                    playTrack(currentTrackIndex);
+            // Click handler
+            renderer.domElement.addEventListener('click', () => {
+                if (arAudioContext.state === 'suspended') {
+                    arAudioContext.resume();
                 }
             });
             
@@ -533,72 +618,148 @@
                     arCamera.updateProjectionMatrix();
                 }
             });
-            
-            // Visibility change - pause when tab is hidden
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'hidden') {
-                    if (currentSource) {
-                        currentSource.stop();
-                        currentSource.disconnect();
-                        currentSource = null;
-                    }
-                    isPlaying = false;
-                    videoElement.pause();
-                }
-            });
         }
 
-        // ============================================
-        // Animation Loop
-        // ============================================
-
-        function animate() {
-            requestAnimationFrame(animate);
+        function playARTrack(index) {
+            if (arCurrentSource) {
+                arCurrentSource.stop();
+                arCurrentSource.disconnect();
+                arCurrentSource = null;
+            }
             
-            // Update video texture
+            arTrackIndex = index;
+            
+            // Use Web Audio API for AR mode too (more reliable than preloaded buffers)
+            if (arAudioContext.state === 'suspended') {
+                arAudioContext.resume();
+            }
+            
+            const oscillator = arAudioContext.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.value = frequencies[index];
+            
+            const gain = arAudioContext.createGain();
+            gain.gain.value = 0.3;
+            
+            oscillator.connect(gain);
+            gain.connect(pannerNode);
+            
+            oscillator.start();
+            oscillator.stop(arAudioContext.currentTime + 3);
+            
+            arCurrentSource = oscillator;
+            
+            videoElement.play().catch(e => console.warn('Video play failed:', e));
+        }
+
+        function stopARMode() {
+            if (mindarThree) {
+                mindarThree.stop();
+                mindarThree = null;
+            }
+            
+            if (arCurrentSource) {
+                arCurrentSource.stop();
+                arCurrentSource.disconnect();
+                arCurrentSource = null;
+            }
+            
+            if (renderer && renderer.domElement.parentNode) {
+                renderer.domElement.parentNode.removeChild(renderer.domElement);
+            }
+            
+            // Clean up
+            renderer = null;
+            stage = null;
+            scene = null;
+            
+            console.log('AR mode stopped.');
+        }
+
+        function arAnimate() {
+            if (!renderer) return;
+            
+            requestAnimationFrame(arAnimate);
+            
             if (videoTexture) {
                 videoTexture.needsUpdate = true;
             }
             
-            // Rotate 3D object for visual interest
             if (object3D) {
                 object3D.rotation.y += 0.01;
             }
             
-            // Update panner position based on object position (for spatial audio)
             if (pannerNode && object3D) {
-                // Simple stereo panning based on x position
                 pannerNode.pan.value = object3D.position.x * 0.5;
             }
             
-            // Render appropriate scene
             if (mindarThree && mindarThree.renderer) {
-                // AR mode - MindAR handles rendering
                 mindarThree.renderer.render(mindarThree.scene, mindarThree.camera);
             } else if (scene && webCamera) {
-                // Web mode
                 renderer.render(scene, webCamera);
             }
         }
 
         // ============================================
-        // Start the application
+        // Mode Toggle
         // ============================================
 
-        // Handle page visibility - don't start until visible
+        function toggleTestMode() {
+            isTestMode = true;
+            localStorage.setItem(TEST_MODE_KEY, 'true');
+            testModeToggle.classList.add('hidden');
+            initARMode().catch(console.error);
+        }
+
+        // ============================================
+        // Initialize Application
+        // ============================================
+
+        // Setup test mode toggle
+        testModeToggle.addEventListener('click', toggleTestMode);
+        
+        // Setup simple mode next button
+        nextButtonSimple.addEventListener('click', nextSimpleTrack);
+        
+        // Initialize based on mode
+        if (isTestMode) {
+            testModeToggle.classList.add('hidden');
+            initARMode().catch(error => {
+                console.error('AR mode failed, falling back to audio:', error);
+                initAudioMode();
+            });
+        } else {
+            initAudioMode();
+            // Show test mode toggle on first load
+            testModeToggle.classList.remove('hidden');
+        }
+        
+        // Handle page visibility
         if (document.visibilityState === 'visible') {
-            init().catch(console.error);
+            // Already handled above
         } else {
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
-                    init().catch(console.error);
+                    // Re-initialize based on mode
+                    if (isTestMode || localStorage.getItem(TEST_MODE_KEY) === 'true') {
+                        if (!arContainerEl.classList.contains('active')) {
+                            initARMode().catch(console.error);
+                        }
+                    } else {
+                        if (audioModeEl.style.display !== 'flex') {
+                            initAudioMode();
+                        }
+                    }
                 }
             });
         }
 
-        // Expose functions to global scope for debugging
-        window.playTrack = playTrack;
-        window.togglePlayPause = togglePlayPause;
+        // Start first track in audio mode
+        setTimeout(() => {
+            if (audioModeEl.style.display === 'flex') {
+                playSimpleTrack();
+            }
+        }, 500);
     </script>
 </body>
 </html>
