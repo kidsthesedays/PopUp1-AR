@@ -58,7 +58,6 @@ const APP_CONFIG = {
 // ============================================
 //
 // Cybernetica Co-incidence Generator - Sequential Journey
-// Each node represents a moment in the narrative experience
 //
 // Audio can be:
 //   - String: URL to audio file (e.g., 'audio/chapter1.mp3')
@@ -95,7 +94,7 @@ const AUDIO_TREE = {
         id: 'offPath',
         title: '2: Off Path - Respect',
         subtitle: 'Honoring the Unseen',
-        text: 'The forest does not judge. It simply is. You find yourself off the beaten path, learning to respect the intelligence of nature itself - the mycelium networks, the communicating trees, the watching birds.',
+        text: 'The forest does not judge. It simply is. You find yourself off the beaten path, learning to respect the intelligence of nature itself.',
         audio: 'audio/2-offPath-Respect.mp3',
         next: 'birdWatching',
         color: '#34c759'
@@ -106,7 +105,7 @@ const AUDIO_TREE = {
         id: 'birdWatching',
         title: '3: Bird Watching',
         subtitle: 'The Observers',
-        text: 'Above you, the birds move in patterns. They are not just watching you - they are communicating about you. A murmuration of knowledge passes through the flock. You are being assessed.',
+        text: 'Above you, the birds move in patterns. They are not just watching you - they are communicating about you. A murmuration of knowledge passes through the flock.',
         audio: 'audio/3-BirdWatching.mp3',
         next: 'othersWatching',
         color: '#ff9500'
@@ -117,7 +116,7 @@ const AUDIO_TREE = {
         id: 'othersWatching',
         title: '4: Others Watching Tree Translate',
         subtitle: 'The Language of Trees',
-        text: 'The trees themselves are translating. Not just the wind through leaves, but something deeper - a conversation in frequencies you can almost understand. The others are watching. The others are learning.',
+        text: 'The trees themselves are translating. Not just the wind through leaves, but something deeper - a conversation in frequencies you can almost understand.',
         audio: 'audio/4-OthersWatchingTreeTranslate.mp3',
         next: 'slowMoWalk',
         color: '#ffcc00'
@@ -128,7 +127,7 @@ const AUDIO_TREE = {
         id: 'slowMoWalk',
         title: '5: Slow Motion Walk',
         subtitle: 'Time Expands',
-        text: 'Every step takes minutes. Every breath, an eternity. You walk in slow motion, feeling the texture of time itself stretching and bending around you. The forest breathes with you.',
+        text: 'Every step takes minutes. Every breath, an eternity. You walk in slow motion, feeling the texture of time itself stretching and bending around you.',
         audio: 'audio/5-SlowMoWalk.mp3',
         next: 'pathwayAB',
         color: '#333366'
@@ -139,18 +138,18 @@ const AUDIO_TREE = {
         id: 'pathwayAB',
         title: '7: Pathway A/B Test',
         subtitle: 'The Choice Point',
-        text: 'Two paths emerge. Not left or right, but A and B. The forest tests you. Both paths are valid. Both paths are watched. The test is not which you choose, but how you choose.',
+        text: 'Two paths emerge. Not left or right, but A and B. The forest tests you. Both paths are valid. Both paths are watched.',
         audio: 'audio/7-pathwayABtest.mp3',
         next: 'offTrack',
         color: '#8844aa'
     },
     
-    // 7 - Off Track: Get Lost, Bring Back Our Tech
+    // 7 - Off Track
     offTrack: {
         id: 'offTrack',
-        title: '7: Off Track - Get Lost, Bring Back Our Tech',
-        subtitle: 'The Detour',
-        text: 'You chose to leave the path entirely. The forest thickens. You are lost, but not alone. Something calls to you - not a voice, but a vibration. A piece of technology, left behind by others, waits to be returned.',
+        title: '7: Off Track',
+        subtitle: 'Get Lost, Bring Back Our Tech',
+        text: 'You chose to leave the path entirely. The forest thickens. You are lost, but not alone. A piece of technology waits to be returned.',
         audio: 'audio/7-offTrack-getlost-bringbackourtech.mp3',
         next: 'mushroomMycelium',
         color: '#cc3333'
@@ -159,9 +158,9 @@ const AUDIO_TREE = {
     // 9 - Mushroom Mycelium Internet Tree Hugging
     mushroomMycelium: {
         id: 'mushroomMycelium',
-        title: '9: Mushroom Mycelium - Internet Tree Hugging',
-        subtitle: 'The Network Beneath',
-        text: 'Beneath your feet, the mycelium pulses like fiber optic cables. The forest is a living internet, connecting every tree, every plant, every being. You are a node in this network now.',
+        title: '9: Mushroom Mycelium',
+        subtitle: 'Internet Tree Hugging',
+        text: 'Beneath your feet, the mycelium pulses like fiber optic cables. The forest is a living internet, connecting every tree, every plant, every being.',
         audio: 'audio/9-MushroomMycelumInternetTreeHugging.mp3',
         next: 'treeBeing',
         color: '#aa44cc'
@@ -170,12 +169,23 @@ const AUDIO_TREE = {
     // 9 - Tree Being Job Panels
     treeBeing: {
         id: 'treeBeing',
-        title: '9: Tree Being - Job Panels',
-        subtitle: 'The Interview',
-        text: 'The trees present their credentials. Bark resumes, leaf portfolios, root references. They are applying for the position of your attention. You realize: you are being interviewed by the forest.',
+        title: '9: Tree Being',
+        subtitle: 'Job Panels',
+        text: 'The trees present their credentials. Bark resumes, leaf portfolios, root references. They are applying for the position of your attention.',
         audio: 'audio/9-TreeBeingJobPanels.mp3',
-        next: 'ending',
+        next: 'returnLucy',
         color: '#44aa44'
+    },
+    
+    // 10 - Return Lucy
+    returnLucy: {
+        id: 'returnLucy',
+        title: '10: Return Lucy',
+        subtitle: 'The Homecoming',
+        text: 'Lucy was here all along. The journey through the forest was the journey back to yourself. The Co-incidence Generator completes its cycle.',
+        audio: 'audio/10-ReturnLucy.mp3',
+        next: 'ending',
+        color: '#00aaff'
     },
     
     // Ending
@@ -183,7 +193,7 @@ const AUDIO_TREE = {
         id: 'ending',
         title: 'The End',
         subtitle: 'Or the Beginning',
-        text: 'You stand, changed. The forest watches as you leave. But you carry it with you now - in your breath, your thoughts, your new understanding. The Co-incidence Generator has done its work.',
+        text: 'You stand, changed. The forest watches as you leave. But you carry it with you now - in your breath, your thoughts, your new understanding.',
         audio: { type: 'sequence', notes: [
             { freq: 220, dur: 0.5, wave: 'sine' },
             { freq: 0, dur: 0.2 },
