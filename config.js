@@ -197,7 +197,7 @@ const AUDIO_TREE = {
         color: '#ffffff',
         background: '#000000',
         // Feedback form link (replace with real Google Form URL)
-        feedbackUrl: 'https://example.com/feedback-placeholder'
+        feedbackUrl: 'https://forms.gle/GNk75c4zjQTtR8PG9'
     }
 };
 
