@@ -26,6 +26,8 @@
             justify-content: center;
             height: 100vh;
             gap: 40px;
+            padding: 40px;
+            text-align: center;
         }
         
         .audio-mode h1 {
@@ -46,6 +48,19 @@
             font-weight: 500;
             color: #007aff;
             text-align: center;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .node-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #ccc;
+            max-width: 80%;
+            margin: 20px 0;
+            min-height: 40px;
         }
         
         .next-button {
@@ -74,6 +89,33 @@
             background: #444;
             cursor: not-allowed;
             box-shadow: none;
+        }
+        
+        /* Options buttons for branching */
+        .options-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .option-button {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .option-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
         }
         
         /* Test mode toggle button - only shown on first load */
@@ -199,14 +241,29 @@
             background: rgba(0, 0, 0, 0.9);
             border-color: #666;
         }
+        
+        /* Loading indicator */
+        .loading {
+            display: none;
+            text-align: center;
+            font-size: 1.2rem;
+            color: #888;
+        }
+        
+        .loading.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <!-- Audio-only mode (default) -->
     <div id="audio-mode" class="audio-mode">
-        <h1>PopUp1</h1>
-        <p class="subtitle">Click "Next" to experience the story through sound</p>
-        <div class="track-info" id="track-info">Track 1</div>
+        <h1 id="node-title">PopUp1</h1>
+        <p class="subtitle" id="node-subtitle">Click "Next" to experience the story through sound</p>
+        <div class="track-info" id="node-id">start</div>
+        <div class="node-text" id="node-text"></div>
+        <div class="options-container" id="options-container"></div>
+        <div class="loading" id="loading">Loading...</div>
         <button id="next-button-simple" class="next-button" disabled>Next</button>
     </div>
     
@@ -225,6 +282,9 @@
         </div>
     </div>
 
+    <!-- Load configuration first -->
+    <script src="config.js"></script>
+    
     <script type="importmap">
         {
             "imports": {
@@ -239,131 +299,322 @@
     <script type="module">
         // ============================================
         // PopUp1-AR - Dual Mode Application
-        // Mode 1: Audio-only (default)
-        // Mode 2: Full AR experience (test mode)
+        // Uses external config.js for content configuration
+        // ============================================
+
+        // ============================================
+        // AUDIO TREE NAVIGATION ENGINE
+        // ============================================
+
+        class AudioTreePlayer {
+            constructor(tree, config) {
+                this.tree = tree;
+                this.config = config;
+                this.currentNodeId = config.defaultStartNode || 'start';
+                this.audioContext = null;
+                this.masterGain = null;
+                this.currentOscillators = [];
+                this.isPlaying = false;
+                
+                // Initialize audio context
+                this.initAudio();
+            }
+            
+            initAudio() {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.audioContext.createGain();
+                this.masterGain.gain.value = this.config.audio.masterVolume || 0.5;
+                this.masterGain.connect(this.audioContext.destination);
+            }
+            
+            getCurrentNode() {
+                return this.tree[this.currentNodeId];
+            }
+            
+            getNode(nodeId) {
+                return this.tree[nodeId];
+            }
+            
+            goTo(nodeId) {
+                if (this.tree[nodeId]) {
+                    this.stopAll();
+                    this.currentNodeId = nodeId;
+                    return true;
+                }
+                return false;
+            }
+            
+            next() {
+                const currentNode = this.getCurrentNode();
+                if (currentNode.options && currentNode.options.length > 0) {
+                    // If there are options, don't auto-advance
+                    return false;
+                }
+                if (currentNode.next) {
+                    this.goTo(currentNode.next);
+                    return true;
+                }
+                // No next defined, stay at current
+                return false;
+            }
+            
+            chooseOption(optionNodeId) {
+                const currentNode = this.getCurrentNode();
+                if (currentNode.options && currentNode.options.includes(optionNodeId)) {
+                    this.goTo(optionNodeId);
+                    return true;
+                }
+                return false;
+            }
+            
+            play() {
+                const node = this.getCurrentNode();
+                if (!node) return;
+                
+                this.stopAll();
+                
+                // Resume audio context if suspended
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+                
+                // Play the audio for this node
+                this.playNodeAudio(node);
+                this.isPlaying = true;
+            }
+            
+            playNodeAudio(node) {
+                if (!node.audio) return;
+                
+                if (typeof node.audio === 'string') {
+                    // URL-based audio
+                    this.playAudioURL(node.audio);
+                } else if (node.audio.type === 'tone') {
+                    this.playTone(node.audio);
+                } else if (node.audio.type === 'sequence') {
+                    this.playSequence(node.audio);
+                }
+                // silence type doesn't need to play anything
+            }
+            
+            playAudioURL(url) {
+                // For now, just log - would need AudioBuffer loading
+                console.log('Would play audio URL:', url);
+            }
+            
+            playTone(config) {
+                const osc = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                
+                osc.type = config.wave || 'sine';
+                osc.frequency.value = config.frequency || 440;
+                
+                gain.gain.value = 0;
+                gain.gain.linearRampToValueAtTime(
+                    config.volume || 0.5, 
+                    this.audioContext.currentTime + 0.05
+                );
+                
+                const endTime = this.audioContext.currentTime + (config.duration || 2);
+                gain.gain.linearRampToValueAtTime(0, endTime);
+                
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                
+                osc.start();
+                osc.stop(endTime);
+                
+                this.currentOscillators.push({ osc, gain, endTime });
+            }
+            
+            playSequence(config) {
+                let currentTime = this.audioContext.currentTime;
+                
+                config.notes.forEach(note => {
+                    const osc = this.audioContext.createOscillator();
+                    const gain = this.audioContext.createGain();
+                    
+                    osc.type = note.wave || config.wave || 'sine';
+                    osc.frequency.value = note.freq || 440;
+                    
+                    gain.gain.value = 0;
+                    const attackTime = currentTime + 0.02;
+                    gain.gain.linearRampToValueAtTime(note.volume || 0.4, attackTime);
+                    
+                    const releaseStart = currentTime + (note.dur || 0.2) - 0.05;
+                    gain.gain.linearRampToValueAtTime(0, releaseStart);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.masterGain);
+                    
+                    osc.start(currentTime);
+                    osc.stop(currentTime + (note.dur || 0.2));
+                    
+                    this.currentOscillators.push({ osc, gain });
+                    
+                    currentTime += note.dur || 0.2;
+                });
+            }
+            
+            stopAll() {
+                this.currentOscillators.forEach(({ osc, gain }) => {
+                    try {
+                        osc.stop();
+                        osc.disconnect();
+                        gain.disconnect();
+                    } catch (e) {
+                        // Already stopped
+                    }
+                });
+                this.currentOscillators = [];
+                this.isPlaying = false;
+            }
+            
+            cleanup() {
+                this.stopAll();
+                if (this.audioContext) {
+                    this.audioContext.close().catch(() => {});
+                }
+            }
+        }
+
+        // ============================================
+        // APPLICATION STATE
         // ============================================
 
         // Check if test mode has been enabled before
-        const TEST_MODE_KEY = 'popup1-ar-test-mode';
+        const TEST_MODE_KEY = APP_CONFIG.testModeStorageKey || 'popup1-ar-test-mode';
         let isTestMode = localStorage.getItem(TEST_MODE_KEY) === 'true';
         
         // DOM Elements
         const audioModeEl = document.getElementById('audio-mode');
         const arContainerEl = document.getElementById('ar-container');
         const testModeToggle = document.getElementById('test-mode-toggle');
-        const trackInfoEl = document.getElementById('track-info');
+        const nodeTitleEl = document.getElementById('node-title');
+        const nodeSubtitleEl = document.getElementById('node-subtitle');
+        const nodeIdEl = document.getElementById('node-id');
+        const nodeTextEl = document.getElementById('node-text');
+        const optionsContainerEl = document.getElementById('options-container');
+        const loadingEl = document.getElementById('loading');
         const nextButtonSimple = document.getElementById('next-button-simple');
         const backButton = document.getElementById('back-button');
 
-        // ============================================
-        // Audio-only Mode (Default)
-        // ============================================
+        // Create audio tree player
+        let audioTreePlayer = null;
 
-        // Simple test audio using data URIs (base64 encoded WAV files)
-        // These are simple sine wave tones generated as WAV
-        const testAudioData = [
-            // Track 1: 440Hz tone (A4)
-            "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQAA",
-            // Track 2: 550Hz tone
-            "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQAA",
-            // Track 3: 660Hz tone
-            "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQAA"
-        ];
-        
-        // Better quality: Use Web Audio API to generate tones dynamically
-        let audioContext = null;
-        let currentOscillator = null;
-        let gainNode = null;
-        let currentTrackIndex = 0;
-        let isPlaying = false;
-        
-        const trackNames = [
-            "Chapter 1: The Beginning",
-            "Chapter 2: The Journey", 
-            "Chapter 3: The Discovery"
-        ];
-        
-        const frequencies = [220, 277.18, 330]; // A3, C#4, E4 - nice chord progression
-        const colors = ['#007aff', '#34c759', '#ff9500'];
+        // ============================================
+        // AUDIO-ONLY MODE
+        // ============================================
 
         function initAudioMode() {
             audioModeEl.style.display = 'flex';
             arContainerEl.classList.remove('active');
             
-            // Initialize audio context on first interaction
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                gainNode = audioContext.createGain();
-                gainNode.connect(audioContext.destination);
-                gainNode.gain.value = 0.3;
-            }
+            // Initialize audio tree player
+            audioTreePlayer = new AudioTreePlayer(AUDIO_TREE, APP_CONFIG);
+            
+            // Update UI with current node
+            updateAudioModeUI();
             
             // Enable next button
             nextButtonSimple.disabled = false;
+            nextButtonSimple.textContent = UI_TEXT.nextButton || 'Next';
             
-            // Show first track
-            updateTrackInfo();
+            // Start playing
+            audioTreePlayer.play();
         }
         
-        function updateTrackInfo() {
-            trackInfoEl.textContent = trackNames[currentTrackIndex];
-            trackInfoEl.style.color = colors[currentTrackIndex];
+        function updateAudioModeUI() {
+            const node = audioTreePlayer.getCurrentNode();
+            if (!node) return;
             
-            // Visual pulse effect
-            trackInfoEl.style.transform = 'scale(1)';
-            setTimeout(() => {
-                trackInfoEl.style.transform = 'scale(1.05)';
-            }, 10);
+            // Update title and subtitle
+            nodeTitleEl.textContent = node.title || '';
+            nodeSubtitleEl.textContent = node.subtitle || '';
+            nodeIdEl.textContent = node.id || '';
+            nodeIdEl.style.color = node.color || THEME.primary;
+            
+            // Update text
+            nodeTextEl.textContent = node.text || '';
+            
+            // Update options
+            renderOptions();
+            
+            // Update background if specified
+            if (node.background) {
+                audioModeEl.style.background = node.background;
+            } else {
+                audioModeEl.style.background = '';
+            }
+            
+            // Update text color based on background brightness
+            if (node.background && isDarkColor(node.background)) {
+                nodeTextEl.style.color = '#ccc';
+            } else {
+                nodeTextEl.style.color = '#333';
+            }
         }
         
-        function playSimpleTrack() {
-            // Stop current oscillator
-            if (currentOscillator) {
-                currentOscillator.stop();
-                currentOscillator = null;
+        function renderOptions() {
+            const node = audioTreePlayer.getCurrentNode();
+            
+            // Clear existing options
+            optionsContainerEl.innerHTML = '';
+            
+            if (node.options && node.options.length > 0) {
+                // Show options as buttons
+                node.options.forEach(optionId => {
+                    const optionNode = audioTreePlayer.getNode(optionId);
+                    if (optionNode) {
+                        const button = document.createElement('button');
+                        button.className = 'option-button';
+                        button.textContent = optionNode.title || optionId;
+                        button.style.borderColor = optionNode.color || THEME.primary;
+                        button.addEventListener('click', () => {
+                            audioTreePlayer.chooseOption(optionId);
+                            updateAudioModeUI();
+                            audioTreePlayer.play();
+                        });
+                        optionsContainerEl.appendChild(button);
+                    }
+                });
+                
+                // Hide next button when options are present
+                nextButtonSimple.style.display = 'none';
+            } else {
+                // Show next button
+                nextButtonSimple.style.display = 'block';
             }
-            
-            // Resume audio context if needed
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-            
-            // Create new oscillator
-            currentOscillator = audioContext.createOscillator();
-            currentOscillator.type = 'sine';
-            currentOscillator.frequency.value = frequencies[currentTrackIndex];
-            currentOscillator.connect(gainNode);
-            
-            // Create a simple envelope for more interesting sound
-            const envelope = audioContext.createGain();
-            envelope.gain.value = 0;
-            envelope.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.1);
-            envelope.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.5);
-            envelope.gain.linearRampToValueAtTime(0, audioContext.currentTime + 2.5);
-            
-            currentOscillator.connect(envelope);
-            envelope.connect(gainNode);
-            
-            currentOscillator.start();
-            currentOscillator.stop(audioContext.currentTime + 3);
-            
-            isPlaying = true;
-            
-            // Enable next button after a short delay
-            nextButtonSimple.disabled = true;
-            setTimeout(() => {
-                nextButtonSimple.disabled = false;
-            }, 200);
         }
         
         function nextSimpleTrack() {
-            currentTrackIndex = (currentTrackIndex + 1) % trackNames.length;
-            updateTrackInfo();
-            playSimpleTrack();
+            const didAdvance = audioTreePlayer.next();
+            if (didAdvance) {
+                updateAudioModeUI();
+                audioTreePlayer.play();
+            } else {
+                // No next node, restart from beginning
+                audioTreePlayer.goTo('start');
+                updateAudioModeUI();
+                audioTreePlayer.play();
+            }
+        }
+        
+        // Helper to check if color is dark
+        function isDarkColor(color) {
+            // Simple heuristic - if it starts with # and has low RGB values
+            if (color.startsWith('#')) {
+                const r = parseInt(color.slice(1, 3), 16);
+                const g = parseInt(color.slice(3, 5), 16);
+                const b = parseInt(color.slice(5, 7), 16);
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                return brightness < 128;
+            }
+            return true;
         }
 
         // ============================================
-        // Full AR Mode
+        // FULL AR MODE
         // ============================================
 
         // State for AR mode
@@ -382,26 +633,9 @@
         let arAudioBuffers = [];
         let arCurrentSource = null;
         let arTrackIndex = 0;
-
-        // Configuration for AR mode
-        const AR_CONFIG = {
-            audioTracks: [
-                // Using longer, more complex tones for AR mode
-                createToneDataURI(220, 3),  // A3 for 3 seconds
-                createToneDataURI(277.18, 3), // C#4
-                createToneDataURI(330, 3)   // E4
-            ],
-            videoSrc: 'video/overlay.webm',
-            targetSrc: 'targets/tag.mind',
-            ALPHA_MODE: 'webm',
-            modelSrc: null
-        };
         
-        // Helper to create tone data URIs (simplified - we'll use Web Audio API)
-        function createToneDataURI(frequency, duration) {
-            // For now, return a placeholder - we'll use Web Audio API in AR mode too
-            return `data:audio/wav;base64,${'UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQAA'}`;
-        }
+        // AR-specific audio tree player
+        let arAudioTreePlayer = null;
 
         async function initARMode() {
             console.log('Initializing Full AR mode...');
@@ -437,7 +671,7 @@
             videoElement.muted = true;
             videoElement.playsInline = true;
             videoElement.crossOrigin = 'anonymous';
-            videoElement.src = AR_CONFIG.videoSrc;
+            videoElement.src = APP_CONFIG.ar.videoSrc || 'video/overlay.webm';
             
             videoTexture = new THREE.VideoTexture(videoElement);
             videoTexture.colorSpace = THREE.SRGBColorSpace;
@@ -465,6 +699,13 @@
             
             // Enable AR button
             document.getElementById('ar-button').disabled = false;
+            document.getElementById('ar-button').textContent = UI_TEXT.startARButton || 'Start AR';
+            document.getElementById('next-button-ar').textContent = UI_TEXT.nextButtonAR || 'Next Track';
+            document.getElementById('back-button').textContent = UI_TEXT.backButton || 'Back to Audio';
+            document.getElementById('mode-label').textContent = UI_TEXT.web3DLabel || 'Web 3D';
+            
+            // Initialize AR audio tree player
+            arAudioTreePlayer = new AudioTreePlayer(AUDIO_TREE, APP_CONFIG);
             
             console.log('Full AR mode ready.');
             
@@ -522,7 +763,6 @@
             const gridHelper = new THREE.GridHelper(10, 10);
             scene.add(gridHelper);
             
-            document.getElementById('mode-label').textContent = 'Web 3D';
             console.log('AR Web 3D mode ready.');
         }
 
@@ -539,7 +779,7 @@
                 });
                 
                 const { loadImageTarget } = await import('mind-ar-image');
-                const target = await loadImageTarget(AR_CONFIG.targetSrc);
+                const target = await loadImageTarget(APP_CONFIG.ar.targetSrc || 'targets/tag.mind');
                 
                 const arScene = new THREE.Scene();
                 arScene.add(stage);
@@ -550,8 +790,12 @@
                 
                 arCamera = mindarThree.camera;
                 
-                document.getElementById('mode-label').textContent = 'AR Mode';
+                document.getElementById('mode-label').textContent = UI_TEXT.arModeLabel || 'AR Mode';
                 document.getElementById('fallback-info').classList.remove('show');
+                
+                // Update fallback info text
+                document.querySelector('#fallback-info h3').textContent = UI_TEXT.arNotAvailable || 'AR Not Available';
+                document.querySelector('#fallback-info p').textContent = UI_TEXT.arNotAvailableDescription || 'Camera access denied or not supported. Using 3D fallback mode.';
                 
                 console.log('MindAR started successfully.');
                 
@@ -568,7 +812,7 @@
                 mindarThree.stop();
                 mindarThree = null;
             }
-            document.getElementById('mode-label').textContent = 'Web 3D';
+            document.getElementById('mode-label').textContent = UI_TEXT.web3DLabel || 'Web 3D';
         }
 
         function setupAREventListeners() {
@@ -586,9 +830,15 @@
                 }
             });
             
-            // Next button
+            // Next button - navigate audio tree
             document.getElementById('next-button-ar').addEventListener('click', () => {
-                playARTrack((arTrackIndex + 1) % AR_CONFIG.audioTracks.length);
+                const didAdvance = arAudioTreePlayer.next();
+                if (didAdvance) {
+                    arAudioTreePlayer.play();
+                } else {
+                    arAudioTreePlayer.goTo('start');
+                    arAudioTreePlayer.play();
+                }
             });
             
             // Back button
@@ -620,38 +870,6 @@
             });
         }
 
-        function playARTrack(index) {
-            if (arCurrentSource) {
-                arCurrentSource.stop();
-                arCurrentSource.disconnect();
-                arCurrentSource = null;
-            }
-            
-            arTrackIndex = index;
-            
-            // Use Web Audio API for AR mode too (more reliable than preloaded buffers)
-            if (arAudioContext.state === 'suspended') {
-                arAudioContext.resume();
-            }
-            
-            const oscillator = arAudioContext.createOscillator();
-            oscillator.type = 'sine';
-            oscillator.frequency.value = frequencies[index];
-            
-            const gain = arAudioContext.createGain();
-            gain.gain.value = 0.3;
-            
-            oscillator.connect(gain);
-            gain.connect(pannerNode);
-            
-            oscillator.start();
-            oscillator.stop(arAudioContext.currentTime + 3);
-            
-            arCurrentSource = oscillator;
-            
-            videoElement.play().catch(e => console.warn('Video play failed:', e));
-        }
-
         function stopARMode() {
             if (mindarThree) {
                 mindarThree.stop();
@@ -662,6 +880,11 @@
                 arCurrentSource.stop();
                 arCurrentSource.disconnect();
                 arCurrentSource = null;
+            }
+            
+            if (arAudioTreePlayer) {
+                arAudioTreePlayer.cleanup();
+                arAudioTreePlayer = null;
             }
             
             if (renderer && renderer.domElement.parentNode) {
@@ -701,7 +924,7 @@
         }
 
         // ============================================
-        // Mode Toggle
+        // MODE TOGGLE
         // ============================================
 
         function toggleTestMode() {
@@ -712,7 +935,7 @@
         }
 
         // ============================================
-        // Initialize Application
+        // INITIALIZE APPLICATION
         // ============================================
 
         // Setup test mode toggle
@@ -731,7 +954,9 @@
         } else {
             initAudioMode();
             // Show test mode toggle on first load
-            testModeToggle.classList.remove('hidden');
+            if (APP_CONFIG.showTestModeToggle !== false) {
+                testModeToggle.classList.remove('hidden');
+            }
         }
         
         // Handle page visibility
@@ -753,13 +978,6 @@
                 }
             });
         }
-
-        // Start first track in audio mode
-        setTimeout(() => {
-            if (audioModeEl.style.display === 'flex') {
-                playSimpleTrack();
-            }
-        }, 500);
     </script>
 </body>
 </html>
