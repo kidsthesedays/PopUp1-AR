@@ -63,16 +63,32 @@
             min-height: 40px;
         }
         
-        /* Button container for navigation controls */
+        /* Button containers */
         .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 20px;
+            width: 100%;
+        }
+        
+        .primary-buttons {
             display: flex;
             gap: 16px;
             flex-wrap: wrap;
             justify-content: center;
-            margin-top: 20px;
         }
         
-        .next-button {
+        .secondary-buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        /* Next/Restart button - primary action */
+        .next-button, .restart-button {
             padding: 16px 48px;
             background: #007aff;
             color: white;
@@ -84,17 +100,17 @@
             box-shadow: 0 4px 20px rgba(0, 122, 255, 0.4);
         }
         
-        .next-button:hover {
+        .next-button:hover, .restart-button:hover {
             background: #0056cc;
             transform: translateY(-2px);
             box-shadow: 0 6px 25px rgba(0, 122, 255, 0.6);
         }
         
-        .next-button:active {
+        .next-button:active, .restart-button:active {
             transform: translateY(0);
         }
         
-        .next-button:disabled {
+        .next-button:disabled, .restart-button:disabled {
             background: #444;
             cursor: not-allowed;
             box-shadow: none;
@@ -123,7 +139,7 @@
             cursor: not-allowed;
         }
         
-        /* Play/Pause button */
+        /* Play/Pause button - toggles state */
         .play-pause-button {
             padding: 12px 24px;
             background: #34c759;
@@ -148,7 +164,7 @@
             box-shadow: none;
         }
         
-        /* Options buttons for branching */
+        /* Options buttons for branching - styled differently */
         .options-container {
             display: flex;
             gap: 20px;
@@ -158,21 +174,24 @@
         }
         
         .option-button {
-            padding: 12px 24px;
-            background: rgba(255, 255, 255, 0.15);
+            padding: 14px 28px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1));
             color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 25px;
-            font-size: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 28px;
+            font-size: 1.05rem;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
         }
         
         .option-button:hover {
-            background: rgba(255, 255, 255, 0.25);
-            border-color: rgba(255, 255, 255, 0.5);
+            background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.2));
+            border-color: rgba(255, 255, 255, 0.6);
             transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2);
         }
         
         /* Feedback button */
@@ -376,11 +395,6 @@
             opacity: 0;
             transition: opacity 0.5s ease;
         }
-        
-        /* History tracking for back button state */
-        .has-history .back-button-audio:disabled {
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -396,12 +410,20 @@
         <p class="subtitle" id="node-subtitle">Click "Next" to experience the story through sound</p>
         <div class="track-info" id="node-id">start</div>
         <div class="node-text" id="node-text"></div>
+        
+        <!-- Options appear here when node has branching -->
         <div class="options-container" id="options-container"></div>
         
+        <!-- Primary buttons (Next or Options) -->
         <div class="button-container">
-            <button id="back-button-audio" class="back-button-audio" disabled>Back</button>
-            <button id="play-pause-button" class="play-pause-button">Play</button>
-            <button id="next-button-simple" class="next-button" disabled>Next</button>
+            <div class="primary-buttons">
+                <button id="next-button-simple" class="next-button" disabled>Next</button>
+                <button id="restart-button" class="restart-button" style="display: none;">Restart</button>
+            </div>
+            <div class="secondary-buttons">
+                <button id="back-button-audio" class="back-button-audio" disabled>Back</button>
+                <button id="play-pause-button" class="play-pause-button">Play</button>
+            </div>
         </div>
         
         <!-- Feedback button (shown only at ending) -->
@@ -454,8 +476,8 @@
             constructor(config) {
                 this.config = config;
                 this.audioContext = null;
-                this.audioBuffers = {}; // URL -> AudioBuffer
-                this.loadingPromises = {}; // URL -> Promise
+                this.audioBuffers = {};
+                this.loadingPromises = {};
                 this.totalFiles = 0;
                 this.loadedFiles = 0;
                 this.onProgress = null;
@@ -466,7 +488,6 @@
                 this.audioContext = audioContext;
             }
             
-            // Extract all audio file URLs from the tree
             extractAudioURLs(tree) {
                 const urls = new Set();
                 Object.values(tree).forEach(node => {
@@ -477,7 +498,6 @@
                 return Array.from(urls);
             }
             
-            // Preload all audio files
             async preload(tree) {
                 const urls = this.extractAudioURLs(tree);
                 this.totalFiles = urls.length;
@@ -494,23 +514,19 @@
                 this.onComplete && this.onComplete();
             }
             
-            // Load a single audio file
             async loadAudio(url) {
-                // Skip if already loaded
                 if (this.audioBuffers[url]) {
                     this.updateProgress();
                     return;
                 }
                 
-                // Skip if already loading
                 if (this.loadingPromises[url]) {
                     await this.loadingPromises[url];
                     return;
                 }
                 
-                this.loadingPromises[url] = new Promise(async (resolve, reject) => {
+                this.loadingPromises[url] = new Promise(async (resolve) => {
                     try {
-                        // Handle data URIs (for generated tones)
                         if (url.startsWith('data:')) {
                             const response = await fetch(url);
                             const arrayBuffer = await response.arrayBuffer();
@@ -521,8 +537,6 @@
                             return;
                         }
                         
-                        // For GitHub Pages, we need to handle CORS
-                        // Try direct fetch first
                         try {
                             const response = await fetch(url);
                             if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -532,7 +546,6 @@
                             this.updateProgress();
                             resolve();
                         } catch (error) {
-                            // If direct fetch fails, try with CORS proxy or same-origin
                             console.warn(`Direct fetch failed for ${url}, trying with credentials:`, error);
                             const response = await fetch(url, { credentials: 'same-origin' });
                             const arrayBuffer = await response.arrayBuffer();
@@ -543,7 +556,6 @@
                         }
                     } catch (error) {
                         console.error(`Failed to load audio: ${url}`, error);
-                        // Create a silent buffer as fallback
                         const silentBuffer = this.audioContext.createBuffer(1, 1, this.audioContext.sampleRate);
                         this.audioBuffers[url] = silentBuffer;
                         this.updateProgress();
@@ -583,9 +595,8 @@
                 this.isPaused = false;
                 this.audioLoader = new AudioLoader(config);
                 this.preloaded = false;
-                this.history = []; // Navigation history for back button
+                this.history = [];
                 
-                // Initialize audio context
                 this.initAudio();
             }
             
@@ -594,8 +605,6 @@
                 this.masterGain = this.audioContext.createGain();
                 this.masterGain.gain.value = this.config.audio.masterVolume || 0.5;
                 this.masterGain.connect(this.audioContext.destination);
-                
-                // Initialize audio loader
                 this.audioLoader.init(this.audioContext);
             }
             
@@ -616,7 +625,6 @@
             
             goTo(nodeId, pushToHistory = true) {
                 if (this.tree[nodeId]) {
-                    // Save current node to history before navigating
                     if (pushToHistory && this.currentNodeId) {
                         this.history.push(this.currentNodeId);
                     }
@@ -644,14 +652,12 @@
             next() {
                 const currentNode = this.getCurrentNode();
                 if (currentNode.options && currentNode.options.length > 0) {
-                    // If there are options, don't auto-advance
                     return false;
                 }
                 if (currentNode.next) {
                     this.goTo(currentNode.next);
                     return true;
                 }
-                // No next defined, stay at current
                 return false;
             }
             
@@ -670,12 +676,10 @@
                 
                 this.stopAll();
                 
-                // Resume audio context if suspended
                 if (this.audioContext.state === 'suspended') {
                     await this.audioContext.resume();
                 }
                 
-                // Play the audio for this node
                 await this.playNodeAudio(node);
                 this.isPlaying = true;
                 this.isPaused = false;
@@ -707,7 +711,6 @@
                 } else if (node.audio.type === 'sequence') {
                     this.playSequence(node.audio);
                 }
-                // silence type doesn't need to play anything
             }
             
             async playAudioURL(url) {
@@ -726,7 +729,6 @@
                 
                 this.currentSources.push(source);
                 
-                // Auto-cleanup when done
                 source.onended = () => {
                     this.cleanupSource(source);
                     this.isPlaying = false;
@@ -758,7 +760,6 @@
                 
                 this.currentSources.push(osc, gain);
                 
-                // Auto-cleanup
                 setTimeout(() => this.cleanupSource(osc, gain), (config.duration || 2) * 1000);
             }
             
@@ -766,7 +767,6 @@
                 let currentTime = this.audioContext.currentTime;
                 
                 config.notes.forEach(note => {
-                    // Skip silence notes (freq: 0)
                     if (note.freq === 0) {
                         currentTime += note.dur || 0.2;
                         return;
@@ -796,7 +796,6 @@
                     currentTime += note.dur || 0.2;
                 });
                 
-                // Auto-cleanup after sequence ends
                 const totalDuration = config.notes.reduce((sum, note) => sum + (note.dur || 0.2), 0);
                 setTimeout(() => {
                     this.isPlaying = false;
@@ -809,9 +808,7 @@
                     try {
                         source.stop();
                         source.disconnect();
-                    } catch (e) {
-                        // Already stopped
-                    }
+                    } catch (e) {}
                 });
                 this.currentSources = this.currentSources.filter(s => !sources.includes(s));
             }
@@ -821,9 +818,7 @@
                     try {
                         source.stop();
                         source.disconnect();
-                    } catch (e) {
-                        // Already stopped
-                    }
+                    } catch (e) {}
                 });
                 this.currentSources = [];
                 this.isPlaying = false;
@@ -837,10 +832,14 @@
                 }
             }
             
-            // Get current node's feedback URL if it exists
             getFeedbackUrl() {
                 const node = this.getCurrentNode();
                 return node ? node.feedbackUrl : null;
+            }
+            
+            isEndingNode() {
+                const node = this.getCurrentNode();
+                return node && node.id === 'ending';
             }
         }
 
@@ -848,7 +847,6 @@
         // APPLICATION STATE
         // ============================================
 
-        // Check if test mode has been enabled before
         const TEST_MODE_KEY = APP_CONFIG.testModeStorageKey || 'popup1-ar-test-mode';
         let isTestMode = localStorage.getItem(TEST_MODE_KEY) === 'true';
         
@@ -863,6 +861,7 @@
         const optionsContainerEl = document.getElementById('options-container');
         const loadingEl = document.getElementById('loading');
         const nextButtonSimple = document.getElementById('next-button-simple');
+        const restartButton = document.getElementById('restart-button');
         const backButtonSimple = document.getElementById('back-button-audio');
         const playPauseButton = document.getElementById('play-pause-button');
         const feedbackButton = document.getElementById('feedback-button');
@@ -871,7 +870,6 @@
         const preloadBarEl = document.getElementById('preload-bar');
         const preloadStatusEl = document.getElementById('preload-status');
 
-        // Create audio tree player
         let audioTreePlayer = null;
 
         // ============================================
@@ -882,14 +880,11 @@
             audioModeEl.style.display = 'flex';
             arContainerEl.classList.remove('active');
             
-            // Initialize audio tree player
             audioTreePlayer = new AudioTreePlayer(AUDIO_TREE, APP_CONFIG);
             
-            // Show loading
             loadingEl.classList.add('active');
             loadingEl.textContent = UI_TEXT.loadingAudio || 'Loading audio...';
             
-            // Preload audio if configured
             if (APP_CONFIG.audio.preloadAudio !== false) {
                 preloadProgressEl.classList.remove('complete');
                 preloadStatusEl.classList.add('active');
@@ -906,18 +901,14 @@
                         preloadStatusEl.classList.remove('active');
                     }, 500);
                     
-                    // Hide loading, show content
                     loadingEl.classList.remove('active');
                     updateAudioModeUI();
                     nextButtonSimple.disabled = false;
-                    
-                    // Start playing
                     audioTreePlayer.play();
                 };
                 
                 await audioTreePlayer.preload();
             } else {
-                // No preloading, just show content
                 loadingEl.classList.remove('active');
                 updateAudioModeUI();
                 nextButtonSimple.disabled = false;
@@ -925,6 +916,7 @@
             }
             
             nextButtonSimple.textContent = UI_TEXT.nextButton || 'Next';
+            restartButton.textContent = UI_TEXT.nextButton || 'Restart';
             backButtonSimple.textContent = UI_TEXT.backButton || 'Back';
             playPauseButton.textContent = UI_TEXT.playButton || 'Play';
             feedbackButton.textContent = UI_TEXT.feedbackButton || 'Give Feedback';
@@ -934,34 +926,26 @@
             const node = audioTreePlayer.getCurrentNode();
             if (!node) return;
             
-            // Update title and subtitle
             nodeTitleEl.textContent = node.title || '';
             nodeSubtitleEl.textContent = node.subtitle || '';
             nodeIdEl.textContent = node.id || '';
             nodeIdEl.style.color = node.color || THEME.primary;
-            
-            // Update text
             nodeTextEl.textContent = node.text || '';
             
-            // Update options
             renderOptions();
+            updateButtonStates();
             
-            // Update background if specified
             if (node.background) {
                 audioModeEl.style.background = node.background;
             } else {
                 audioModeEl.style.background = '';
             }
             
-            // Update text color based on background brightness
             if (node.background && isDarkColor(node.background)) {
                 nodeTextEl.style.color = '#ccc';
             } else {
                 nodeTextEl.style.color = '#333';
             }
-            
-            // Update button states
-            updateButtonStates();
             
             // Show/hide feedback button
             if (node.feedbackUrl) {
@@ -973,13 +957,16 @@
                 feedbackButton.style.display = 'none';
             }
             
-            // Update play/pause button text
             updatePlayPauseButton();
         }
         
         function updateButtonStates() {
-            // Enable/disable back button based on history
             backButtonSimple.disabled = !audioTreePlayer.canGoBack();
+            
+            // Show restart button at ending, next button otherwise
+            const isEnding = audioTreePlayer.isEndingNode();
+            nextButtonSimple.style.display = isEnding ? 'none' : 'block';
+            restartButton.style.display = isEnding ? 'block' : 'none';
         }
         
         function updatePlayPauseButton() {
@@ -994,12 +981,9 @@
         
         function renderOptions() {
             const node = audioTreePlayer.getCurrentNode();
-            
-            // Clear existing options
             optionsContainerEl.innerHTML = '';
             
             if (node.options && node.options.length > 0) {
-                // Show options as buttons
                 node.options.forEach(optionId => {
                     const optionNode = audioTreePlayer.getNode(optionId);
                     if (optionNode) {
@@ -1015,12 +999,6 @@
                         optionsContainerEl.appendChild(button);
                     }
                 });
-                
-                // Hide next button when options are present
-                nextButtonSimple.style.display = 'none';
-            } else {
-                // Show next button
-                nextButtonSimple.style.display = 'block';
             }
         }
         
@@ -1032,13 +1010,21 @@
                 updateAudioModeUI();
                 await audioTreePlayer.play();
             } else {
-                // No next node, restart from beginning
                 audioTreePlayer.goTo('start');
                 updateAudioModeUI();
                 await audioTreePlayer.play();
             }
             
             nextButtonSimple.disabled = false;
+        }
+        
+        async function restartExperience() {
+            restartButton.disabled = true;
+            audioTreePlayer.goTo('start', false); // Don't push start to history
+            audioTreePlayer.history = []; // Clear history
+            updateAudioModeUI();
+            await audioTreePlayer.play();
+            restartButton.disabled = false;
         }
         
         async function backTrack() {
@@ -1058,7 +1044,6 @@
             updatePlayPauseButton();
         }
         
-        // Helper to check if color is dark
         function isDarkColor(color) {
             if (color.startsWith('#')) {
                 const r = parseInt(color.slice(1, 3), 16);
@@ -1071,10 +1056,9 @@
         }
 
         // ============================================
-        // FULL AR MODE
+        // FULL AR MODE (unchanged from previous version)
         // ============================================
 
-        // State for AR mode
         let stage = null;
         let renderer = null;
         let mindarThree = null;
@@ -1087,11 +1071,7 @@
         let object3D = null;
         let pannerNode = null;
         let arAudioContext = null;
-        let arAudioBuffers = [];
         let arCurrentSource = null;
-        let arTrackIndex = 0;
-        
-        // AR-specific audio tree player
         let arAudioTreePlayer = null;
 
         async function initARMode() {
@@ -1100,16 +1080,13 @@
             audioModeEl.style.display = 'none';
             arContainerEl.classList.add('active');
             
-            // Save test mode preference
             localStorage.setItem(TEST_MODE_KEY, 'true');
             testModeToggle.classList.add('hidden');
             
-            // Initialize Audio Context
             arAudioContext = new (window.AudioContext || window.webkitAudioContext)();
             pannerNode = arAudioContext.createStereoPanner();
             pannerNode.connect(arAudioContext.destination);
             
-            // Create renderer
             renderer = new THREE.WebGLRenderer({ 
                 antialias: true, 
                 alpha: true,
@@ -1119,10 +1096,8 @@
             renderer.setPixelRatio(window.devicePixelRatio || 1);
             arContainerEl.appendChild(renderer.domElement);
             
-            // Create shared stage
             stage = new THREE.Group();
             
-            // Initialize video element
             videoElement = document.createElement('video');
             videoElement.loop = true;
             videoElement.muted = true;
@@ -1135,41 +1110,27 @@
             videoTexture.format = THREE.RGBAFormat;
             videoTexture.transparent = true;
             
-            // Create video plane with basic material
             const videoMaterial = new THREE.MeshBasicMaterial({ 
                 map: videoTexture, 
                 transparent: true 
             });
             createARVideoPlane(videoMaterial);
-            
-            // Create 3D object
             createAR3DObject();
-            
-            // Setup lighting
             setupARLighting();
             
-            // Initialize Web mode first
             await initARWebMode();
-            
-            // Setup event listeners for AR mode
             setupAREventListeners();
             
-            // Enable AR button
             document.getElementById('ar-button').disabled = false;
             document.getElementById('ar-button').textContent = UI_TEXT.startARButton || 'Start AR';
             document.getElementById('next-button-ar').textContent = UI_TEXT.nextButtonAR || 'Next Track';
             document.getElementById('back-button').textContent = UI_TEXT.backButton || 'Back to Audio';
             document.getElementById('mode-label').textContent = UI_TEXT.web3DLabel || 'Web 3D';
             
-            // Initialize AR audio tree player
             arAudioTreePlayer = new AudioTreePlayer(AUDIO_TREE, APP_CONFIG);
-            
-            // Preload audio for AR mode
             await arAudioTreePlayer.preload();
             
             console.log('Full AR mode ready.');
-            
-            // Start rendering
             arAnimate();
         }
 
@@ -1195,70 +1156,50 @@
         function setupARLighting() {
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
             stage.add(ambientLight);
-            
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
             directionalLight.position.set(1, 1, 1);
             stage.add(directionalLight);
-            
             const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 0.6);
             stage.add(hemisphereLight);
         }
 
         async function initARWebMode() {
             console.log('Initializing AR Web 3D mode...');
-            
             scene = new THREE.Scene();
             scene.add(stage);
-            
             webCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             webCamera.position.set(0, 0, 2);
-            
             const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
             const controls = new OrbitControls(webCamera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            
             scene.background = new THREE.Color(0x111122);
-            
             const gridHelper = new THREE.GridHelper(10, 10);
             scene.add(gridHelper);
-            
             console.log('AR Web 3D mode ready.');
         }
 
         async function initARMindAR() {
             console.log('Initializing MindAR...');
-            
             try {
                 const { MindARThree } = await import('mind-ar');
                 const { MindARImageTarget } = await import('mind-ar-image');
-                
                 mindarThree = new MindARThree({
                     container: renderer.domElement,
                     camera: webCamera
                 });
-                
                 const { loadImageTarget } = await import('mind-ar-image');
                 const target = await loadImageTarget(APP_CONFIG.ar.targetSrc || 'targets/tag.mind');
-                
                 const arScene = new THREE.Scene();
                 arScene.add(stage);
-                
                 mindarThree.addAnchor(0, target, arScene);
-                
                 await mindarThree.start();
-                
                 arCamera = mindarThree.camera;
-                
                 document.getElementById('mode-label').textContent = UI_TEXT.arModeLabel || 'AR Mode';
                 document.getElementById('fallback-info').classList.remove('show');
-                
-                // Update fallback info text
                 document.querySelector('#fallback-info h3').textContent = UI_TEXT.arNotAvailable || 'AR Not Available';
                 document.querySelector('#fallback-info p').textContent = UI_TEXT.arNotAvailableDescription || 'Camera access denied or not supported. Using 3D fallback mode.';
-                
                 console.log('MindAR started successfully.');
-                
                 return true;
             } catch (error) {
                 console.error('Failed to start MindAR:', error);
@@ -1276,21 +1217,16 @@
         }
 
         function setupAREventListeners() {
-            // AR button
             document.getElementById('ar-button').addEventListener('click', async () => {
                 if (arCurrentSource) {
                     arCurrentSource.stop();
                     arCurrentSource.disconnect();
                     arCurrentSource = null;
                 }
-                
                 const success = await initARMindAR();
-                if (!success) {
-                    stopARMindAR();
-                }
+                if (!success) stopARMindAR();
             });
             
-            // Next button - navigate audio tree
             document.getElementById('next-button-ar').addEventListener('click', async () => {
                 const didAdvance = arAudioTreePlayer.next();
                 if (didAdvance) {
@@ -1301,28 +1237,23 @@
                 }
             });
             
-            // Back button
             backButton.addEventListener('click', () => {
                 stopARMode();
                 initAudioMode();
             });
             
-            // Click handler
             renderer.domElement.addEventListener('click', () => {
                 if (arAudioContext.state === 'suspended') {
                     arAudioContext.resume();
                 }
             });
             
-            // Window resize
             window.addEventListener('resize', () => {
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                
                 if (webCamera) {
                     webCamera.aspect = window.innerWidth / window.innerHeight;
                     webCamera.updateProjectionMatrix();
                 }
-                
                 if (arCamera) {
                     arCamera.aspect = window.innerWidth / window.innerHeight;
                     arCamera.updateProjectionMatrix();
@@ -1335,47 +1266,30 @@
                 mindarThree.stop();
                 mindarThree = null;
             }
-            
             if (arCurrentSource) {
                 arCurrentSource.stop();
                 arCurrentSource.disconnect();
                 arCurrentSource = null;
             }
-            
             if (arAudioTreePlayer) {
                 arAudioTreePlayer.cleanup();
                 arAudioTreePlayer = null;
             }
-            
             if (renderer && renderer.domElement.parentNode) {
                 renderer.domElement.parentNode.removeChild(renderer.domElement);
             }
-            
-            // Clean up
             renderer = null;
             stage = null;
             scene = null;
-            
             console.log('AR mode stopped.');
         }
 
         function arAnimate() {
             if (!renderer) return;
-            
             requestAnimationFrame(arAnimate);
-            
-            if (videoTexture) {
-                videoTexture.needsUpdate = true;
-            }
-            
-            if (object3D) {
-                object3D.rotation.y += 0.01;
-            }
-            
-            if (pannerNode && object3D) {
-                pannerNode.pan.value = object3D.position.x * 0.5;
-            }
-            
+            if (videoTexture) videoTexture.needsUpdate = true;
+            if (object3D) object3D.rotation.y += 0.01;
+            if (pannerNode && object3D) pannerNode.pan.value = object3D.position.x * 0.5;
             if (mindarThree && mindarThree.renderer) {
                 mindarThree.renderer.render(mindarThree.scene, mindarThree.camera);
             } else if (scene && webCamera) {
@@ -1398,15 +1312,12 @@
         // INITIALIZE APPLICATION
         // ============================================
 
-        // Setup test mode toggle
         testModeToggle.addEventListener('click', toggleTestMode);
-        
-        // Setup audio mode buttons
         nextButtonSimple.addEventListener('click', nextSimpleTrack);
+        restartButton.addEventListener('click', restartExperience);
         backButtonSimple.addEventListener('click', backTrack);
         playPauseButton.addEventListener('click', togglePlayPause);
         
-        // Initialize based on mode
         if (isTestMode) {
             testModeToggle.classList.add('hidden');
             initARMode().catch(error => {
@@ -1415,19 +1326,16 @@
             });
         } else {
             initAudioMode();
-            // Show test mode toggle on first load
             if (APP_CONFIG.showTestModeToggle !== false) {
                 testModeToggle.classList.remove('hidden');
             }
         }
         
-        // Handle page visibility
         if (document.visibilityState === 'visible') {
-            // Already handled above
+            // Already handled
         } else {
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
-                    // Re-initialize based on mode
                     if (isTestMode || localStorage.getItem(TEST_MODE_KEY) === 'true') {
                         if (!arContainerEl.classList.contains('active')) {
                             initARMode().catch(console.error);
