@@ -78,7 +78,7 @@ const AUDIO_TREE = {
         color: '#007aff'
     },
     
-    // 1 - Falling Lucy
+    // 1 - Falling
     falling: {
         id: 'falling',
         title: '1: Falling',
@@ -177,7 +177,7 @@ const AUDIO_TREE = {
         color: '#44aa44'
     },
     
-    // 10 - Return Lucy
+    // 10 - Return
     returnLucy: {
         id: 'returnLucy',
         title: '10: Return',
