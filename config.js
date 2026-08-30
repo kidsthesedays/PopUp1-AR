@@ -193,7 +193,7 @@ const AUDIO_TREE = {
         id: 'ending',
         title: 'The End',
         subtitle: 'Or the Beginning',
-        text: 'You stand, perhaps changed. The forest watches as you leave. But you carry it with you now - in your breath, your thoughts, with extra understanding.',
+        text: 'You stand, perhaps changed. The forest watches as you leave. But you carry it with you now - in your breath, your thoughts with extra understanding.',
         audio: { type: 'sequence', notes: [
             { freq: 220, dur: 0.5, wave: 'sine' },
             { freq: 0, dur: 0.2 },
