@@ -78,10 +78,10 @@ const AUDIO_TREE = {
         color: '#007aff'
     },
     
-    // 1 - Falling
+    // 1 - Falling Lucy
     falling: {
         id: 'falling',
-        title: '1: Falling',
+        title: '1: Falling Lucy',
         subtitle: 'The Descent Begins',
         text: 'You step into the forest. The ground gives way beneath you, and you begin to fall - not with fear, but with curiosity. The trees whisper as you descend into the unknown.',
         audio: 'audio/1-Falling.mp3',
@@ -129,39 +129,39 @@ const AUDIO_TREE = {
         subtitle: 'Time Expands',
         text: 'Every step takes minutes. Every breath, an eternity. You walk in slow motion, feeling the texture of time itself stretching and bending around you.',
         audio: 'audio/5-SlowMoWalk.mp3',
-        next: 'pathwayAB',
+        next: 'offTrack',
         color: '#333366'
     },
     
-    // 7 - Pathway AB Test
+    // 6 - Off Track
+    offTrack: {
+        id: 'offTrack',
+        title: '6: Off Track',
+        subtitle: 'Get Lost, Bring Back Our Tech',
+        text: 'You chose to leave the path entirely. The forest thickens. You are lost, but not alone. A piece of technology waits to be returned.',
+        audio: 'audio/6-offTrack-getlost-bringbackourtech.mp3',
+        next: 'pathwayAB',
+        color: '#cc3333'
+    },
+    
+    // 7 - Pathway A/B Test
     pathwayAB: {
         id: 'pathwayAB',
         title: '7: Pathway A/B Test',
         subtitle: 'The Choice Point',
-        text: 'Two paths emerge. The forest tests you. Both paths are valid. Both paths are seen.',
+        text: 'Two paths emerge. Not left or right, but A and B. The forest tests you. Both paths are valid. Both paths are watched.',
         audio: 'audio/7-pathwayABtest.mp3',
-        next: 'offTrack',
+        next: 'mushroomMycelium',
         color: '#8844aa'
     },
     
-    // 7 - Off Track
-    offTrack: {
-        id: 'offTrack',
-        title: '7: Off Track',
-        subtitle: 'Get Lost, Bring Back Our Tech',
-        text: 'You chose to leave the path entirely. The forest thickens. You are lost, but not alone. A piece of technology waits to be returned.',
-        audio: 'audio/7-offTrack-getlost-bringbackourtech.mp3',
-        next: 'mushroomMycelium',
-        color: '#cc3333'
-    },
-    
-    // 9 - Mushroom Mycelium Internet Tree Hugging
+    // 8 - Mushroom Mycelium Internet Tree Hugging
     mushroomMycelium: {
         id: 'mushroomMycelium',
-        title: '9: Mushroom Mycelium',
+        title: '8: Mushroom Mycelium',
         subtitle: 'Internet Tree Hugging',
         text: 'Beneath your feet, the mycelium pulses like fiber optic cables. The forest is a living internet, connecting every tree, every plant, every being.',
-        audio: 'audio/9-MushroomMycelumInternetTreeHugging.mp3',
+        audio: 'audio/8-MushroomMycelumInternetTreeHugging.mp3',
         next: 'treeBeing',
         color: '#aa44cc'
     },
@@ -182,7 +182,7 @@ const AUDIO_TREE = {
         id: 'returnLucy',
         title: '10: Return Lucy',
         subtitle: 'The Homecoming',
-        text: 'The journey through the forest was the journey back to yourself. The Co-incidence Generator completes its cycle.',
+        text: 'Lucy was here all along. The journey through the forest was the journey back to yourself. The Co-incidence Generator completes its cycle.'
         audio: 'audio/10-ReturnLucy.mp3',
         next: 'ending',
         color: '#00aaff'
