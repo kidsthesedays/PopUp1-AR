@@ -182,7 +182,7 @@ const AUDIO_TREE = {
         id: 'returnLucy',
         title: '10: Return',
         subtitle: 'The Homecoming',
-        text: 'The journey through the forest was the journey back to yourself. The Co-incidence Generator completes its cycle.'
+        text: 'The journey through the forest was the journey back to yourself. The Co-incidence Generator completes its cycle.',
         audio: 'audio/10-ReturnLucy.mp3',
         next: 'ending',
         color: '#00aaff'
