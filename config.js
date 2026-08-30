@@ -81,7 +81,7 @@ const AUDIO_TREE = {
     // 1 - Falling Lucy
     falling: {
         id: 'falling',
-        title: '1: Falling Lucy',
+        title: '1: Falling',
         subtitle: 'The Descent Begins',
         text: 'You step into the forest. The ground gives way beneath you, and you begin to fall - not with fear, but with curiosity. The trees whisper as you descend into the unknown.',
         audio: 'audio/1-Falling.mp3',
@@ -180,9 +180,9 @@ const AUDIO_TREE = {
     // 10 - Return Lucy
     returnLucy: {
         id: 'returnLucy',
-        title: '10: Return Lucy',
+        title: '10: Return',
         subtitle: 'The Homecoming',
-        text: 'Lucy was here all along. The journey through the forest was the journey back to yourself. The Co-incidence Generator completes its cycle.'
+        text: 'The journey through the forest was the journey back to yourself. The Co-incidence Generator completes its cycle.'
         audio: 'audio/10-ReturnLucy.mp3',
         next: 'ending',
         color: '#00aaff'
