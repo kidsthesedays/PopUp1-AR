@@ -138,7 +138,7 @@ const AUDIO_TREE = {
         id: 'pathwayAB',
         title: '7: Pathway A/B Test',
         subtitle: 'The Choice Point',
-        text: 'Two paths emerge. Not left or right, but A and B. The forest tests you. Both paths are valid. Both paths are watched.',
+        text: 'Two paths emerge. The forest tests you. Both paths are valid. Both paths are seen.',
         audio: 'audio/7-pathwayABtest.mp3',
         next: 'offTrack',
         color: '#8844aa'
@@ -182,7 +182,7 @@ const AUDIO_TREE = {
         id: 'returnLucy',
         title: '10: Return Lucy',
         subtitle: 'The Homecoming',
-        text: 'Lucy was here all along. The journey through the forest was the journey back to yourself. The Co-incidence Generator completes its cycle.',
+        text: 'The journey through the forest was the journey back to yourself. The Co-incidence Generator completes its cycle.',
         audio: 'audio/10-ReturnLucy.mp3',
         next: 'ending',
         color: '#00aaff'
@@ -193,7 +193,7 @@ const AUDIO_TREE = {
         id: 'ending',
         title: 'The End',
         subtitle: 'Or the Beginning',
-        text: 'You stand, changed. The forest watches as you leave. But you carry it with you now - in your breath, your thoughts, your new understanding.',
+        text: 'You stand, perhaps changed. The forest watches as you leave. But you carry it with you now - in your breath, your thoughts, your new understanding.',
         audio: { type: 'sequence', notes: [
             { freq: 220, dur: 0.5, wave: 'sine' },
             { freq: 0, dur: 0.2 },
