@@ -138,7 +138,7 @@ const AUDIO_TREE = {
         id: 'offTrack',
         title: '6: Off Track',
         subtitle: 'Get Lost, Bring Back Our Tech',
-        text: 'You chose to leave the path entirely. The forest thickens. You are lost, but not alone. A piece of technology waits to be returned.',
+        text: 'You chose to leave the path entirely. The forest thickens. You are lost, but not alone. The Co-incidence Generator is still with you, guiding you through the chaos.',
         audio: 'audio/6-offTrack-getlost-bringbackourtech.mp3',
         next: 'pathwayAB',
         color: '#cc3333'
@@ -193,7 +193,7 @@ const AUDIO_TREE = {
         id: 'ending',
         title: 'The End',
         subtitle: 'Or the Beginning',
-        text: 'You stand, perhaps changed. The forest watches as you leave. But you carry it with you now - in your breath, your thoughts, your new understanding.',
+        text: 'You stand, perhaps changed. The forest watches as you leave. But you carry it with you now - in your breath, your thoughts, with extra understanding.',
         audio: { type: 'sequence', notes: [
             { freq: 220, dur: 0.5, wave: 'sine' },
             { freq: 0, dur: 0.2 },
